@@ -2,7 +2,7 @@ import { createContext, useContext, useMemo, useReducer, useRef, type ReactNode 
 import type {
   Activity, CharacterLook, Cat, ExView, Listing, Notif, Sheet, Stage, Tab, Thread, ThreadRole, Villager,
 } from "./types";
-import { CATS, DIST, REPLIES, SEED_ITEMS } from "./data";
+import { CATS, DIST, REPLIES, SEED_ITEMS, HOME_HOOD } from "./data";
 import { charFor, cloneChar, randomChar } from "./character";
 import { api, setToken } from "./api";
 
@@ -14,11 +14,12 @@ function hash(s: string) { let h = 0; for (let i = 0; i < s.length; i++) h = (h 
 
 interface State {
   stage: Stage; tab: Tab; exView: ExView; maxDist: number; query: string;
+  hoodScope: "mine" | "nearby" | "all";
   filter: Cat | "all"; selectedPin: string | null; chatOpen: string | null;
   sheet: Sheet; toastMsg: string; toastKey: number;
   apiMode: boolean; meId: string | null;
   balance: number;
-  player: { name: string; char: CharacterLook };
+  player: { name: string; char: CharacterLook; neighborhood: string };
   draft: CharacterLook;
   items: Listing[]; village: Villager[]; threads: Thread[]; activity: Activity[];
   notifications: Notif[]; blocked: string[];
@@ -30,9 +31,10 @@ const DEFAULT_LOOK: CharacterLook = { species: 0, skin: 1, haircolor: 1, hair: 0
 function initialState(): State {
   return {
     stage: "auth", tab: "village", exView: "list", maxDist: DIST.default, query: "",
+    hoodScope: "mine",
     filter: "all", selectedPin: null, chatOpen: null, sheet: null, toastMsg: "", toastKey: 0,
     apiMode: API, meId: null, balance: 12,
-    player: { name: "Jordan", char: { ...DEFAULT_LOOK } },
+    player: { name: "Jordan", char: { ...DEFAULT_LOOK }, neighborhood: HOME_HOOD },
     draft: { ...DEFAULT_LOOK },
     items: SEED_ITEMS.slice(),
     village: [
@@ -62,6 +64,7 @@ function initialState(): State {
 export interface Actions {
   setTab(t: Tab): void; setExView(v: ExView): void; setMaxDist(mi: number): void;
   setQuery(q: string): void; setFilter(f: Cat | "all"): void; selectPin(id: string | null): void;
+  setHoodScope(scope: "mine" | "nearby" | "all"): void;
   signIn(guest: boolean): void;
   apiAuth(b: { mode: "login" | "register"; email: string; name: string; password: string }): void;
   verify(method: string): void;
@@ -85,7 +88,8 @@ const Ctx = createContext<Store | null>(null);
 function mapListing(d: any): Listing {
   const pos = d.mx != null ? { mx: d.mx, my: d.my } : { mx: 10 + (hash(d.id) % 80), my: 55 + ((hash(d.id) >> 5) % 30) };
   return { id: String(d.id), authorId: d.authorId, type: d.type, cat: d.cat, name: d.name, dist: d.dist ?? 0,
-    rating: d.rating ?? 5, reviews: d.reviews ?? 0, title: d.title, blurb: d.blurb, cost: d.cost, unit: d.unit ?? "", photo: d.photo, ...pos };
+    rating: d.rating ?? 5, reviews: d.reviews ?? 0, title: d.title, blurb: d.blurb, cost: d.cost, unit: d.unit ?? "",
+    neighborhood: d.neighborhood, photo: d.photo, ...pos };
 }
 function mapMsg(m: any, meId: string | null) {
   return { from: m.kind === "SYSTEM" ? "sys" : m.senderId === meId ? "me" : "them", text: m.text } as Thread["msgs"][number];
@@ -146,7 +150,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ]);
       const u = user as any;
       s.meId = u.id; s.balance = u.balance ?? 0;
-      s.player = { name: u.name, char: (u.char as CharacterLook) ?? { ...DEFAULT_LOOK } };
+      s.player = { name: u.name, char: (u.char as CharacterLook) ?? { ...DEFAULT_LOOK }, neighborhood: u.neighborhood ?? HOME_HOOD };
       s.items = (feed.listings as any[]).map(mapListing);
       s.threads = (th.threads as any[]).map((t) => mapThread(t, u.id));
       s.village = (vil.villagers as any[]).map(mapVillager);
@@ -169,6 +173,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setExView(v) { s.exView = v; s.selectedPin = null; bump(); },
       setMaxDist(mi) { s.maxDist = mi; bump(); },
       setQuery(q) { s.query = q; bump(); },
+      setHoodScope(scope) { s.hoodScope = scope; s.selectedPin = null; bump(); },
       setFilter(f) { s.filter = f; bump(); },
       selectPin(id) { s.selectedPin = id; bump(); },
 
@@ -183,7 +188,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           try {
             if (b.mode === "register") {
               const r = await api.register({ email: b.email, name: b.name, password: b.password, char: s.player.char as any });
-              setToken(r.token); s.meId = (r.user as any).id; s.player = { name: (r.user as any).name, char: s.player.char };
+              setToken(r.token); s.meId = (r.user as any).id; s.player = { name: (r.user as any).name, char: s.player.char, neighborhood: (r.user as any).neighborhood ?? HOME_HOOD };
               s.stage = "verify"; bump();
             } else {
               const r = await api.login({ email: b.email, password: b.password });
@@ -202,8 +207,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       finishCreate(name) {
         const look = cloneChar(s.draft); const nm = name.trim() || "You";
         if (API) {
-          (async () => { try { await bootstrap(); } catch (e) { fail(e); } s.player = { name: nm, char: look }; s.stage = "app"; s.tab = "village"; bump(); })();
-        } else { s.player = { name: nm, char: look }; s.stage = "app"; s.tab = "village"; toast("Welcome to Echo Park 🍀"); }
+          (async () => { try { await bootstrap(); } catch (e) { fail(e); } s.player = { name: nm, char: look, neighborhood: s.player.neighborhood }; s.stage = "app"; s.tab = "village"; bump(); })();
+        } else { s.player = { name: nm, char: look, neighborhood: s.player.neighborhood }; s.stage = "app"; s.tab = "village"; toast("Welcome to Echo Park 🍀"); }
       },
 
       openSheet(sheet) { s.sheet = sheet; bump(); },

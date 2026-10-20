@@ -24,6 +24,7 @@ export interface Listing {
   revBy?: string;
   cost: Cost;
   unit: string;
+  neighborhood?: string; // the LA neighborhood this listing belongs to
   photo?: string; // optional image: a data URL (uploaded) or asset URL
 }
 

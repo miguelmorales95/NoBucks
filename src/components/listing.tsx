@@ -59,6 +59,7 @@ export function ListingCard({ item, onOpen }: { item: Listing; onOpen: (item: Li
         <div className="body">
           <div className="meta">
             <span>{item.name}</span><span className="dot" />
+            {item.neighborhood && <><span>🏘️ {item.neighborhood}</span><span className="dot" /></>}
             <span>{item.dist ? item.dist + " mi" : "nearby"}</span><span className="dot" />
             <RateBadge item={item} />
           </div>

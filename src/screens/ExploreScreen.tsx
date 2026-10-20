@@ -1,7 +1,13 @@
 import { useStore } from "../store";
-import { CATS, CAT_KEYS, DIST } from "../data";
+import { CATS, CAT_KEYS, DIST, nearbyHoods } from "../data";
 import { Avatar, ListingCard, priceText } from "../components/listing";
 import type { Listing } from "../types";
+
+function inScope(i: Listing, scope: "mine" | "nearby" | "all", home: string): boolean {
+  if (i.name === "You" || scope === "all") return true;
+  if (scope === "mine") return i.neighborhood === home;
+  return nearbyHoods(home).includes(i.neighborhood ?? "");
+}
 
 const MAP_SVG = `
 <svg class="base" viewBox="0 0 400 460" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -47,6 +53,7 @@ function DistanceSlider() {
 
 function MapView() {
   const { state, actions } = useStore();
+  const home = state.player.neighborhood;
   const pins = state.items.filter((i) => i.mx != null && !state.blocked.includes(i.name));
   const sel = state.selectedPin ? state.items.find((i) => i.id === state.selectedPin) : null;
   return (
@@ -54,7 +61,9 @@ function MapView() {
       <div style={{ position: "absolute", inset: 0 }} dangerouslySetInnerHTML={{ __html: MAP_SVG }} />
       <div className="youpin" style={{ left: "50%", top: "50%" }}><span className="ring" /><span className="lab">You</span></div>
       {pins.map((p) => {
-        const dim = (state.filter !== "all" && p.cat !== state.filter) || p.dist > state.maxDist;
+        const dim = (state.filter !== "all" && p.cat !== state.filter)
+          || !inScope(p, state.hoodScope, home)
+          || (state.hoodScope === "all" && p.dist > state.maxDist);
         return (
           <button key={p.id} className={"pin" + (dim ? " dim" : "")} aria-pressed={state.selectedPin === p.id}
             style={{ left: p.mx + "%", top: p.my + "%", ["--pc" as any]: CATS[p.cat].ci }}
@@ -81,10 +90,12 @@ export function ExploreScreen() {
   const { state, actions } = useStore();
   const open = (item: Listing) => actions.openSheet({ kind: "item", id: item.id });
   const q = state.query.trim().toLowerCase();
+  const home = state.player.neighborhood;
   const list = state.items.filter(
     (i) => (i.type === "offer" || i.type === "request")
       && (state.filter === "all" || i.cat === state.filter)
-      && (i.name === "You" || i.dist <= state.maxDist)
+      && inScope(i, state.hoodScope, home)
+      && (state.hoodScope !== "all" || i.name === "You" || i.dist <= state.maxDist)
       && !state.blocked.includes(i.name)
       && (!q || `${i.title} ${i.blurb} ${i.name}`.toLowerCase().includes(q))
   );
@@ -101,6 +112,11 @@ export function ExploreScreen() {
         <button aria-pressed={state.exView === "list"} onClick={() => actions.setExView("list")}>🗂️ List</button>
         <button aria-pressed={state.exView === "map"} onClick={() => actions.setExView("map")}>🗺️ Map</button>
       </div>
+      <div className="seg">
+        <button aria-pressed={state.hoodScope === "mine"} onClick={() => actions.setHoodScope("mine")}>🏡 {state.player.neighborhood}</button>
+        <button aria-pressed={state.hoodScope === "nearby"} onClick={() => actions.setHoodScope("nearby")}>🏘️ Nearby</button>
+        <button aria-pressed={state.hoodScope === "all"} onClick={() => actions.setHoodScope("all")}>🌆 All LA</button>
+      </div>
       {state.exView === "list" && (
         <div className="field" style={{ marginBottom: 12 }}>
           <input
@@ -110,13 +126,17 @@ export function ExploreScreen() {
           />
         </div>
       )}
-      <DistanceSlider />
+      {state.hoodScope === "all" && <DistanceSlider />}
       <ChipsBar />
       {state.exView === "map" ? <MapView /> : (
         <div className="feed">
           {list.length
             ? list.map((it) => <ListingCard key={it.id} item={it} onOpen={open} />)
-            : <div className="empty"><span className="e">🍃</span>{q ? <>No matches for “{state.query}”.</> : <>Nothing within {state.maxDist} mi here —<br />drag the slider wider to see more.</>}</div>}
+            : <div className="empty"><span className="e">🍃</span>{
+                q ? <>No matches for “{state.query}”.</>
+                : state.hoodScope !== "all" ? <>Nothing in this area yet —<br />try Nearby or All&nbsp;LA.</>
+                : <>Nothing within {state.maxDist} mi —<br />drag the slider wider.</>
+              }</div>}
         </div>
       )}
     </>

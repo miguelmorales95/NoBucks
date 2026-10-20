@@ -21,7 +21,7 @@ function listingDTO(
   l: {
     id: string; type: ListingType; category: Category; title: string; blurb: string;
     costType: CostType; cost: number | null; unit: string; photoUrl: string | null;
-    rating: number; reviews: number;
+    neighborhood: string | null; rating: number; reviews: number;
     author: { id: string; name: string; rating: number; reviews: number };
   },
   dist: number
@@ -34,6 +34,7 @@ function listingDTO(
     id: l.id, type: l.type.toLowerCase(), cat: l.category.toLowerCase(),
     name: l.author.name, authorId: l.author.id,
     title: l.title, blurb: l.blurb, cost, unit: l.unit, photo: l.photoUrl ?? undefined,
+    neighborhood: l.neighborhood ?? undefined,
     dist: Math.round(dist * 10) / 10, rating: l.rating, reviews: l.reviews,
   };
 }
@@ -85,6 +86,7 @@ const createSchema = z.object({
   cost: z.number().int().min(0).max(999).nullable().optional(),
   unit: z.string().max(20).default(""),
   photoUrl: z.string().url().optional(),
+  neighborhood: z.string().max(60).optional(),
 });
 
 router.post("/", requireAuth, wrap(async (req: AuthedRequest, res) => {
@@ -99,6 +101,7 @@ router.post("/", requireAuth, wrap(async (req: AuthedRequest, res) => {
       costType: b.type === "pact" ? "PACT" : b.costType,
       cost: b.costType === "SPROUTS" ? b.cost ?? 0 : null,
       unit: b.unit, photoUrl: b.photoUrl,
+      neighborhood: b.neighborhood ?? me?.neighborhood,
       lat: me?.lat, lng: me?.lng,
     },
     include: { author: { select: { id: true, name: true, rating: true, reviews: true } } },

@@ -113,9 +113,10 @@ model Listing {
   blurb     String
   costType  CostType    @default(SPROUTS)
   cost      Int? // sprouts; null for BARTER / PACT / FREE
-  unit      String      @default("")
-  photoUrl  String?
-  lat       Float?
+  unit         String   @default("")
+  photoUrl     String?
+  neighborhood String?
+  lat          Float?
   lng       Float?
   rating    Float       @default(5)
   reviews   Int         @default(0)

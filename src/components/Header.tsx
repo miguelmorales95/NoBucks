@@ -20,7 +20,7 @@ export function Header() {
           <span>🌱</span><span>{state.balance}</span>
         </button>
       </div>
-      <div className="loc">📍 Echo Park, LA — <strong style={{ marginLeft: 4 }}>walking distance to 26 neighbors</strong></div>
+      <div className="loc">📍 {state.player.neighborhood}, LA — <strong style={{ marginLeft: 4 }}>your home neighborhood</strong></div>
     </header>
   );
 }

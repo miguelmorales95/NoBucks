@@ -48,7 +48,7 @@ function ItemSheet({ item }: { item: Listing }) {
         <Avatar name={item.name} cat={item.cat} />
         <div>
           <h2>{item.title}</h2>
-          <div className="sh-meta"><span>{item.name}</span><span>·</span><span>{dist}</span><span>·</span><RateBadge item={item} /></div>
+          <div className="sh-meta"><span>{item.name}</span>{item.neighborhood && <><span>·</span><span>🏘️ {item.neighborhood}</span></>}<span>·</span><span>{dist}</span><span>·</span><RateBadge item={item} /></div>
         </div>
       </div>
       <div className="blurb">{item.blurb}</div>

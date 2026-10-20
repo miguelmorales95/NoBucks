@@ -37,6 +37,25 @@ export const REPLIES = [
 
 export const DIST = { min: 0.5, max: 12, step: 0.5, default: 1.5 };
 
+// Real LA neighborhoods, with adjacency used for the "Nearby" scope.
+export const HOME_HOOD = "Echo Park";
+export const NEIGHBORHOODS: Record<string, string[]> = {
+  "Echo Park": ["Silver Lake", "Historic Filipinotown", "Elysian Valley", "Chinatown", "Downtown LA"],
+  "Silver Lake": ["Echo Park", "Los Feliz", "Atwater Village", "Historic Filipinotown"],
+  "Historic Filipinotown": ["Echo Park", "Silver Lake", "Downtown LA"],
+  "Elysian Valley": ["Echo Park", "Atwater Village"],
+  "Chinatown": ["Echo Park", "Downtown LA"],
+  "Los Feliz": ["Silver Lake", "Atwater Village"],
+  "Atwater Village": ["Silver Lake", "Elysian Valley", "Los Feliz"],
+  "Downtown LA": ["Chinatown", "Historic Filipinotown"],
+  "Highland Park": ["Atwater Village"],
+  "Koreatown": ["Historic Filipinotown"],
+};
+/** The set of neighborhoods counted as "nearby" to a home neighborhood (itself + adjacent). */
+export function nearbyHoods(home: string): string[] {
+  return [home, ...(NEIGHBORHOODS[home] ?? [])];
+}
+
 // Numeric ids here are mapped to strings below, so demo ids match the server's string ids.
 const RAW_ITEMS: any[] = [
   { id: 1, type: "offer", cat: "food", name: "Maya", dist: 0.4, mx: 20, my: 24, rating: 4.9, reviews: 37, title: "Fresh sourdough loaf + a jar of starter", blurb: "Baked this morning. I'll hand over a live starter and teach you to keep it bubbling so you never buy bread again.", review: "The starter is thriving and so am I. Maya even texts to check on it.", revBy: "Theo", cost: 3, unit: "loaf" },
@@ -59,4 +78,13 @@ const RAW_ITEMS: any[] = [
   { id: 16, type: "pact", cat: "teach", name: "Luz", dist: 0.9, mx: 70, my: 47, rating: 5.0, reviews: 20, title: "Spanish ↔ English practice circle", blurb: "Tuesdays & Thursdays, 7pm at the Echo Park library. Half Spanish, half English, all patient. Room for one or two more.", review: "My Spanish went from zero to ordering tacos confidently. Warm group.", revBy: "Dev", cost: "pact", unit: "" },
 ];
 
-export const SEED_ITEMS: Listing[] = RAW_ITEMS.map((r) => ({ ...r, id: String(r.id) })) as Listing[];
+const HOOD_BY_ID: Record<string, string> = {
+  "1": "Echo Park", "2": "Silver Lake", "3": "Echo Park", "4": "Historic Filipinotown", "5": "Silver Lake",
+  "6": "Echo Park", "7": "Echo Park", "8": "Elysian Valley", "9": "Chinatown", "10": "Echo Park", "11": "Silver Lake",
+  "17": "Highland Park", "18": "Koreatown", "12": "Echo Park", "13": "Historic Filipinotown", "14": "Echo Park",
+  "15": "Elysian Valley", "16": "Chinatown",
+};
+
+export const SEED_ITEMS: Listing[] = RAW_ITEMS.map((r) => ({
+  ...r, id: String(r.id), neighborhood: HOOD_BY_ID[String(r.id)] ?? HOME_HOOD,
+})) as Listing[];
