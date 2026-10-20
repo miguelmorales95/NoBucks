@@ -2,7 +2,10 @@ import { createContext, useContext, useMemo, useReducer, useRef, type ReactNode 
 import type {
   Activity, AdminOverview, AdminReport, Circle, CharacterLook, Cat, EventItem, ExView, Goal, Gratitude, Listing, Notif, Sheet, Stage, Sticker, Tab, Thread, ThreadRole, VillageCard, VillageView, Villager, Weather,
 } from "./types";
-import { CATS, DIST, REPLIES, SEED_ITEMS, HOME_HOOD, SPROUT_CAP, POT_SEED, SEED_GRATITUDES, SEED_EVENTS, SEED_REPORTS, SEED_GOALS, SEED_CIRCLES, SEED_STICKERS, CIRCLE_EMOJI } from "./data";
+import { CATS, DIST, REPLIES, SEED_ITEMS, HOME_HOOD, SPROUT_CAP, POT_SEED, SEED_GRATITUDES, SEED_EVENTS, SEED_REPORTS, SEED_GOALS, SEED_CIRCLES, SEED_STICKERS, CIRCLE_EMOJI, OUTFITS, HATS, DEFAULT_WARDROBE } from "./data";
+
+const WEARABLE_NAME: Record<string, string> = Object.fromEntries([...OUTFITS, ...HATS].map((o) => [o.id, o.name]));
+const GOAL_REWARD: Record<string, string[]> = { "g-offer": ["apron"], "g-host": ["party", "captain"], "g-help": ["suit"], "g-give": ["jersey"] };
 
 const EXPIRY_WEEKS = 6; // sprouts expire after this many idle weeks (anti-hoarding draft)
 import { charFor, cloneChar, randomChar } from "./character";
@@ -21,7 +24,8 @@ interface State {
   sheet: Sheet; toastMsg: string; toastKey: number;
   apiMode: boolean; meId: string | null;
   balance: number;
-  player: { name: string; char: CharacterLook; neighborhood: string; role: "member" | "leader" };
+  player: { name: string; char: CharacterLook; neighborhood: string; role: "member" | "leader"; villageTheme: string };
+  wardrobe: string[];
   draft: CharacterLook;
   items: Listing[]; village: Villager[]; threads: Thread[]; activity: Activity[];
   notifications: Notif[]; blocked: string[];
@@ -36,7 +40,7 @@ interface State {
 }
 
 const firstName = (n: string) => n.split(/[ &]/)[0];
-const DEFAULT_LOOK: CharacterLook = { species: 0, skin: 1, haircolor: 1, hair: 0, shirt: 1, acc: 0 };
+const DEFAULT_LOOK: CharacterLook = { species: 0, skin: 1, haircolor: 1, hair: 0, shirt: 1, acc: 0, outfit: 0, hat: 0 };
 
 function initialState(): State {
   return {
@@ -44,13 +48,14 @@ function initialState(): State {
     hoodScope: "mine",
     filter: "all", selectedPin: null, chatOpen: null, sheet: null, toastMsg: "", toastKey: 0,
     apiMode: API, meId: null, balance: 12,
-    player: { name: "Jordan", char: { ...DEFAULT_LOOK }, neighborhood: HOME_HOOD, role: "leader" },
+    player: { name: "Jordan", char: { ...DEFAULT_LOOK }, neighborhood: HOME_HOOD, role: "leader", villageTheme: "neighborhood" },
+    wardrobe: [...DEFAULT_WARDROBE],
     draft: { ...DEFAULT_LOOK },
     items: SEED_ITEMS.slice(),
     village: [
-      { name: "Theo", cat: "repair", char: charFor("Theo"), kind: "app", note: "Tuned up your bike and refused extra sprouts." },
-      { name: "Mina", cat: "art", char: charFor("Mina"), kind: "app", note: "Gave you a fresh haircut last Tuesday." },
-      { name: "Uncle Ray", cat: "repair", char: charFor("Uncle Ray"), kind: "off", note: "Fixes the whole family's cars. Not on Clover yet!" },
+      { name: "Theo", cat: "repair", char: charFor("Theo"), kind: "app", note: "Tuned up your bike and refused extra sprouts.", trust: "green" },
+      { name: "Mina", cat: "art", char: charFor("Mina"), kind: "app", note: "Gave you a fresh haircut last Tuesday.", trust: "green" },
+      { name: "Uncle Ray", cat: "repair", char: charFor("Uncle Ray"), kind: "off", note: "Fixes the whole family's cars. Not on Clover yet!", trust: "yellow" },
     ],
     threads: [
       { id: "seed-1", name: "Grace", cat: "garden", itemId: "8", role: "client", status: "arranging", msgs: [
@@ -94,7 +99,7 @@ export interface Actions {
   verify(method: string): void;
   setDraft(l: CharacterLook): void; shuffleDraft(): void; finishCreate(name: string): void;
   openSheet(s: Sheet): void; closeSheet(): void;
-  post(d: { type: Listing["type"]; cat: Cat; title: string; blurb: string; cost: Listing["cost"]; photo?: string; photoFile?: File }): void;
+  post(d: { type: Listing["type"]; cat: Cat; title: string; blurb: string; cost: Listing["cost"]; photo?: string; photoFile?: File; locationLabel?: string; willTravel?: boolean }): void;
   addOffVillager(d: { name: string; cat: Cat; note: string; look: CharacterLook }): void;
   startThread(item: Listing, role: ThreadRole): void;
   openThread(id: string): void; closeThread(): void; sendMsg(threadId: string, text: string): void;
@@ -119,6 +124,8 @@ export interface Actions {
   joinCircle(id: string): void;
   inviteToCircle(id: string, name: string): void;
   setWeather(w: Weather): void;
+  setVillageTheme(theme: string): void;
+  setLook(look: CharacterLook): void;
 }
 
 interface Store { state: State; actions: Actions; }
@@ -129,7 +136,7 @@ function mapListing(d: any): Listing {
   const pos = d.mx != null ? { mx: d.mx, my: d.my } : { mx: 10 + (hash(d.id) % 80), my: 55 + ((hash(d.id) >> 5) % 30) };
   return { id: String(d.id), authorId: d.authorId, type: d.type, cat: d.cat, name: d.name, dist: d.dist ?? 0,
     rating: d.rating ?? 5, reviews: d.reviews ?? 0, title: d.title, blurb: d.blurb, cost: d.cost, unit: d.unit ?? "",
-    neighborhood: d.neighborhood, photo: d.photo, ...pos };
+    neighborhood: d.neighborhood, photo: d.photo, trust: d.trust, willTravel: d.willTravel, locations: d.locations, ...pos };
 }
 function mapMsg(m: any, meId: string | null) {
   return { from: m.kind === "SYSTEM" ? "sys" : m.senderId === meId ? "me" : "them", text: m.text } as Thread["msgs"][number];
@@ -172,7 +179,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const getItem = (id: string) => s.items.find((i) => i.id === id);
     const addVillager = (name: string, cat: Cat, note: string, kind: "app" | "off") => {
       if (s.village.some((v) => v.name === name)) return;
-      s.village.push({ name, cat, char: charFor(name + kind), kind, note });
+      s.village.push({ name, cat, char: charFor(name + kind), kind, note, trust: kind === "app" ? "green" : "yellow" });
     };
     const syncBalance = () => { s.balance = s.sproutBatches.reduce((a, b) => a + b.amt, 0); };
     const credit = (n: number) => { if (n > 0) { s.sproutBatches.push({ amt: n, wk: 0 }); syncBalance(); } };
@@ -181,11 +188,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       for (const b of s.sproutBatches) { if (need <= 0) break; const take = Math.min(b.amt, need); b.amt -= take; need -= take; }
       s.sproutBatches = s.sproutBatches.filter((b) => b.amt > 0); syncBalance();
     };
+    const unlock = (id: string) => {
+      if (!s.wardrobe.includes(id)) { s.wardrobe.push(id); notify("👕", "New in your wardrobe", `You earned the ${WEARABLE_NAME[id] ?? id}!`); if (API) api.updateMe({ wardrobe: s.wardrobe }).catch(() => {}); }
+    };
     const bumpGoal = (id: string) => {
       const g = s.goals.find((x) => x.id === id);
       if (!g || g.progress >= g.target) return;
       g.progress++;
-      if (g.progress >= g.target) { s.stickers.unshift({ id: uid(), emoji: "🏅", from: "Clover goals" }); toast(`Goal complete: ${g.label} 🏅`); }
+      if (g.progress >= g.target) {
+        s.stickers.unshift({ id: uid(), emoji: "🏅", from: "Clover goals" });
+        (GOAL_REWARD[id] ?? []).forEach(unlock);
+        toast(`Goal complete: ${g.label} 🏅`);
+      }
     };
     const fireBrowser = (title: string, body: string) => {
       try { if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") new Notification(title, { body }); } catch { /* ignore */ }
@@ -210,7 +224,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ]);
       const u = user as any;
       s.meId = u.id; s.balance = u.balance ?? 0;
-      s.player = { name: u.name, char: (u.char as CharacterLook) ?? { ...DEFAULT_LOOK }, neighborhood: u.neighborhood ?? HOME_HOOD, role: ((u.role as string) ?? "member") as "member" | "leader" };
+      s.player = { name: u.name, char: (u.char as CharacterLook) ?? { ...DEFAULT_LOOK }, neighborhood: u.neighborhood ?? HOME_HOOD, role: ((u.role as string) ?? "member") as "member" | "leader", villageTheme: u.villageTheme ?? "neighborhood" };
+      if (Array.isArray(u.wardrobe) && u.wardrobe.length) s.wardrobe = u.wardrobe as string[];
       s.items = (feed.listings as any[]).map(mapListing);
       s.threads = (th.threads as any[]).map((t) => mapThread(t, u.id));
       s.village = (vil.villagers as any[]).map(mapVillager);
@@ -251,7 +266,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           try {
             if (b.mode === "register") {
               const r = await api.register({ email: b.email, name: b.name, password: b.password, char: s.player.char as any });
-              setToken(r.token); s.meId = (r.user as any).id; s.player = { name: (r.user as any).name, char: s.player.char, neighborhood: (r.user as any).neighborhood ?? HOME_HOOD, role: ((r.user as any).role ?? "member") };
+              setToken(r.token); s.meId = (r.user as any).id; s.player = { name: (r.user as any).name, char: s.player.char, neighborhood: (r.user as any).neighborhood ?? HOME_HOOD, role: ((r.user as any).role ?? "member"), villageTheme: "neighborhood" };
               s.stage = "verify"; bump();
             } else {
               const r = await api.login({ email: b.email, password: b.password });
@@ -270,8 +285,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       finishCreate(name) {
         const look = cloneChar(s.draft); const nm = name.trim() || "You";
         if (API) {
-          (async () => { try { await bootstrap(); } catch (e) { fail(e); } s.player = { name: nm, char: look, neighborhood: s.player.neighborhood, role: s.player.role }; s.stage = "app"; s.tab = "village"; bump(); })();
-        } else { s.player = { name: nm, char: look, neighborhood: s.player.neighborhood, role: s.player.role }; s.stage = "app"; s.tab = "village"; toast("Welcome to Echo Park 🍀"); }
+          (async () => { try { await bootstrap(); } catch (e) { fail(e); } s.player = { name: nm, char: look, neighborhood: s.player.neighborhood, role: s.player.role, villageTheme: s.player.villageTheme }; try { await api.updateMe({ char: look as any, wardrobe: s.wardrobe }); } catch { /* ignore */ } s.stage = "app"; s.tab = "village"; bump(); })();
+        } else { s.player = { name: nm, char: look, neighborhood: s.player.neighborhood, role: s.player.role, villageTheme: s.player.villageTheme }; s.stage = "app"; s.tab = "village"; toast("Welcome to Echo Park 🍀"); }
       },
 
       openSheet(sheet) { s.sheet = sheet; bump(); },
@@ -287,7 +302,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                 type: d.type, category: d.cat, title: d.title, blurb: d.blurb,
                 costType: d.type === "pact" ? "PACT" : "SPROUTS",
                 cost: d.type === "pact" ? null : (typeof d.cost === "number" ? d.cost : 0),
-                photoUrl,
+                photoUrl, willTravel: d.willTravel,
+                locations: d.locationLabel ? [{ label: d.locationLabel, mx: 50, my: 50 }] : undefined,
               });
               await refreshFeed();
               s.filter = "all"; toast("Posted to the neighborhood! 🎉");
@@ -299,6 +315,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         s.items.unshift({
           id: uid(), type: d.type, cat: d.cat, name: "You", dist: 0, mx: 48 + Math.random() * 8, my: 52 + Math.random() * 8,
           rating: 5, reviews: 0, title: d.title, blurb: d.blurb || "(No details yet)", cost: d.cost, unit: d.type === "offer" ? "hour" : "", photo: d.photo,
+          trust: "green", willTravel: d.willTravel,
+          locations: d.locationLabel ? [{ label: d.locationLabel, mx: 40 + Math.random() * 20, my: 40 + Math.random() * 20 }] : undefined,
         });
         s.filter = "all"; if (d.type === "offer") bumpGoal("g-offer"); toast("Posted to the neighborhood! 🎉");
         s.tab = d.type === "pact" ? "pacts" : "explore"; if (d.type !== "pact") s.exView = "list"; bump();
@@ -384,7 +402,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const gained = Math.min(reward, room);
           const overflow = reward - gained;
           credit(gained); if (overflow > 0) s.communityPot += overflow;
-          bumpGoal("g-help");
+          bumpGoal("g-help"); if (item?.cat === "repair") unlock("hardhat");
           if (gained > 0 && item) s.activity.unshift({ ic: CATS[item.cat].e, cat: item.cat, t: `Earned: ${item.title} · ${item.name}`, s: "Just now", amt: gained });
           t.status = "done";
           t.msgs.push({ from: "sys", text: gained > 0 ? `✅ Complete! You earned ${gained} 🌱.${overflow > 0 ? ` ${overflow} over your cap flowed to the community pot 🫙.` : ""} ${firstName(t.name)} rated you ⭐` : "✅ Complete! Thanks for helping." });
@@ -542,6 +560,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       joinCircle(id) { const c = s.circles.find((x) => x.id === id); if (c && !c.members.includes("You")) c.members.push("You"); toast("You joined the circle 🤝"); bump(); },
       inviteToCircle(id, name) { const c = s.circles.find((x) => x.id === id); if (c && !c.members.includes(name)) c.members.push(name); toast(`Invited ${firstName(name)} ✉️`); bump(); },
       setWeather(w) { s.weather = w; bump(); },
+      setVillageTheme(theme) { s.player.villageTheme = theme; toast("Village theme updated 🎨"); if (API) api.updateMe({ villageTheme: theme }).catch(() => {}); bump(); },
+      setLook(look) { s.player.char = look; s.sheet = null; toast("New look! 👕"); if (API) api.updateMe({ char: look as any }).catch(() => {}); bump(); },
     };
   }, [s]);
 

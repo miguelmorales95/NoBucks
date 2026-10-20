@@ -27,6 +27,36 @@ export const HAIRS = ["short", "long", "bun", "curly", "buzz"];
 export const SHIRTS = ["#f08a63", "#2ca397", "#f0b23e", "#6fae4e", "#8a6fd0", "#d9608a", "#4a9fd0"];
 export const ACCS = ["none", "glasses", "flower", "freckles"];
 
+// Wardrobe: some clothes are free; others are earned by giving.
+export const OUTFITS = [
+  { id: "plain", name: "Tee" },
+  { id: "stripes", name: "Stripes" },
+  { id: "overalls", name: "Overalls" },
+  { id: "hoodie", name: "Hoodie" },
+  { id: "dress", name: "Dress" },
+  { id: "apron", name: "Apron", earn: "Share your first offer" },
+  { id: "jersey", name: "Jersey", earn: "Keep a 4-week giving streak" },
+  { id: "suit", name: "Sharp suit", earn: "Help 3 neighbors" },
+];
+export const HATS = [
+  { id: "none", name: "None" },
+  { id: "cap", name: "Cap" },
+  { id: "beanie", name: "Beanie" },
+  { id: "flowercrown", name: "Flower crown" },
+  { id: "party", name: "Party hat", earn: "Host or join an event" },
+  { id: "captain", name: "Captain's hat", earn: "Host an event" },
+  { id: "hardhat", name: "Hard hat", earn: "Do a fix-it trade" },
+];
+export const DEFAULT_WARDROBE = ["plain", "stripes", "overalls", "hoodie", "dress", "none", "cap", "beanie", "flowercrown"];
+
+export const VILLAGE_THEMES = [
+  { id: "neighborhood", name: "Neighborhood", e: "🏡" },
+  { id: "farm", name: "Farm", e: "🌾" },
+  { id: "pirate", name: "Pirate cove", e: "🏴‍☠️" },
+  { id: "sports", name: "Sports field", e: "⚽" },
+  { id: "office", name: "Office park", e: "🏢" },
+];
+
 export const REPLIES = [
   "So glad you reached out! Yes, let's make it happen. 🌱",
   "Perfect timing — I was hoping someone would ask. When suits you?",
@@ -130,4 +160,5 @@ const HOOD_BY_ID: Record<string, string> = {
 
 export const SEED_ITEMS: Listing[] = RAW_ITEMS.map((r) => ({
   ...r, id: String(r.id), neighborhood: HOOD_BY_ID[String(r.id)] ?? HOME_HOOD,
+  trust: r.name === "Sam" ? "red" : ["Marco", "Nico"].includes(r.name) ? "yellow" : r.rating >= 4.8 ? "green" : "yellow",
 })) as Listing[];

@@ -1,7 +1,7 @@
 import { useStore } from "../store";
 import { VillageScene } from "../components/VillageScene";
 import { ListingCard } from "../components/listing";
-import { CATS, SPROUT_CAP } from "../data";
+import { CATS, SPROUT_CAP, VILLAGE_THEMES } from "../data";
 import { VisitView, PeekView, StickerBinder, CardBinder, GivingCard } from "./VillageExtras";
 
 export function VillageScreen() {
@@ -38,6 +38,13 @@ function VillageHome() {
         <button onClick={() => actions.setVillageView("visit")}>🏘️<span>Visit</span></button>
         <button onClick={() => actions.setVillageView("stickers")}>✨<span>Stickers</span></button>
         <button onClick={() => actions.setVillageView("cards")}>🃏<span>Cards</span></button>
+      </div>
+
+      <div className="theme-row">
+        {VILLAGE_THEMES.map((t) => (
+          <button key={t.id} aria-pressed={state.player.villageTheme === t.id} title={t.name} onClick={() => actions.setVillageTheme(t.id)}>{t.e}</button>
+        ))}
+        <button className="dressbtn" onClick={() => actions.openSheet({ kind: "wardrobe" })}>👕 Change look</button>
       </div>
 
       <div className="screen-sub" style={{ margin: "12px 2px 0" }}>

@@ -8,7 +8,7 @@ export function Header() {
     <header className="top">
       <div className="brand">🍀 clover</div>
       <div className="hi">
-        <div className="me"><Character look={state.player.char} /></div>
+        <div className="me t-green"><Character look={state.player.char} /></div>
         <div className="who">
           <div className="k">Good afternoon,</div>
           <div className="n">{state.player.name}</div>

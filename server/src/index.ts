@@ -12,6 +12,7 @@ import walletRoutes from "./routes/wallet";
 import gratitudeRoutes from "./routes/gratitudes";
 import eventRoutes from "./routes/events";
 import adminRoutes from "./routes/admin";
+import meRoutes from "./routes/me";
 
 const app = express();
 app.use(cors({ origin: env.corsOrigin }));
@@ -30,6 +31,7 @@ app.use("/wallet", walletRoutes);
 app.use("/gratitudes", gratitudeRoutes);
 app.use("/events", eventRoutes);
 app.use("/admin", adminRoutes);
+app.use("/me", meRoutes);
 
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 

@@ -1,14 +1,14 @@
-import type { Cat, EventItem, Listing } from "../types";
+import type { Cat, EventItem, Listing, TrustLevel } from "../types";
 import { CATS } from "../data";
 
 export function initials(name: string): string {
   return name.split(/[ &]/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("");
 }
 
-export function Avatar({ name, cat }: { name: string; cat: Cat }) {
+export function Avatar({ name, cat, trust }: { name: string; cat: Cat; trust?: TrustLevel }) {
   const c = CATS[cat];
   return (
-    <div className="avatar" style={{ background: c.c, color: c.ci }}>
+    <div className={"avatar" + (trust ? " trust-" + trust : "")} style={{ background: c.c, color: c.ci }}>
       {initials(name)}
       <span className="badge">{c.e}</span>
     </div>
@@ -79,7 +79,7 @@ export function ListingCard({ item, onOpen }: { item: Listing; onOpen: (item: Li
     <article className="card" onClick={() => onOpen(item)}>
       <PhotoBanner item={item} />
       <div className="row">
-        <Avatar name={item.name} cat={item.cat} />
+        <Avatar name={item.name} cat={item.cat} trust={item.trust} />
         <div className="body">
           <div className="meta">
             <span>{item.name}</span><span className="dot" />

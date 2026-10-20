@@ -88,6 +88,8 @@ model User {
   verified     Boolean  @default(false)
   verifyMethod String?
   role         Role     @default(MEMBER)
+  villageTheme String   @default("neighborhood")
+  wardrobe     Json?
   balance      Int      @default(12) // welcome grant of sprouts
   rating       Float    @default(5)
   reviews      Int      @default(0)
@@ -126,6 +128,8 @@ model Listing {
   unit         String   @default("")
   photoUrl     String?
   neighborhood String?
+  willTravel   Boolean  @default(false)
+  locations    Json?
   lat          Float?
   lng       Float?
   rating    Float       @default(5)

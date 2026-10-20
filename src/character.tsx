@@ -1,5 +1,5 @@
 import type { CharacterLook } from "./types";
-import { SPECIES, SKINS, FURS, HAIRCOLORS, HAIRS, SHIRTS, ACCS } from "./data";
+import { SPECIES, SKINS, FURS, HAIRCOLORS, HAIRS, SHIRTS, ACCS, OUTFITS, HATS } from "./data";
 
 export function paletteFor(look: CharacterLook): string[] {
   return SPECIES[look.species].k === "person" ? SKINS : FURS;
@@ -63,7 +63,28 @@ export function characterInner(d: CharacterLook): string {
   else if (acc === "flower") extra = `<g transform="translate(72,24)"><circle cx="0" cy="-5" r="3.4" fill="#ff9ec4"/><circle cx="5" cy="0" r="3.4" fill="#ff9ec4"/><circle cx="-5" cy="0" r="3.4" fill="#ff9ec4"/><circle cx="2.5" cy="4.5" r="3.4" fill="#ff9ec4"/><circle cx="-2.5" cy="4.5" r="3.4" fill="#ff9ec4"/><circle cx="0" cy="0" r="2.6" fill="#f7d24a"/></g>`;
   else if (acc === "freckles") extra = `<g fill="#b9745a" opacity=".6"><circle cx="31" cy="54" r="1.1"/><circle cx="35" cy="57" r="1.1"/><circle cx="33" cy="60" r="1.1"/><circle cx="69" cy="54" r="1.1"/><circle cx="65" cy="57" r="1.1"/><circle cx="67" cy="60" r="1.1"/></g>`;
 
-  return shirtPath + back + head + front + face + extra;
+  // ---- outfit (over the shirt) ----
+  const outfitId = OUTFITS[(d.outfit ?? 0) % OUTFITS.length].id;
+  let outfit = "";
+  if (outfitId === "stripes") outfit = `<g stroke="rgba(255,255,255,.55)" stroke-width="4"><line x1="16" y1="84" x2="84" y2="84"/><line x1="14" y1="96" x2="86" y2="96"/></g>`;
+  else if (outfitId === "overalls") outfit = `<path d="M32 112 L32 82 Q32 76 42 76 L58 76 Q68 76 68 82 L68 112 Z" fill="#4a6fa8"/><rect x="34" y="68" width="6" height="14" fill="#4a6fa8"/><rect x="60" y="68" width="6" height="14" fill="#4a6fa8"/><circle cx="37" cy="84" r="2" fill="#f0c020"/><circle cx="63" cy="84" r="2" fill="#f0c020"/>`;
+  else if (outfitId === "hoodie") outfit = `<path d="M30 70 Q50 60 70 70 L66 80 Q50 72 34 80 Z" fill="rgba(0,0,0,.14)"/><rect x="38" y="92" width="24" height="12" rx="3" fill="rgba(0,0,0,.1)"/><line x1="46" y1="74" x2="46" y2="88" stroke="#fff" stroke-width="2"/><line x1="54" y1="74" x2="54" y2="88" stroke="#fff" stroke-width="2"/>`;
+  else if (outfitId === "dress") outfit = `<path d="M24 112 L34 86 L66 86 L76 112 Z" fill="${shirt}"/><path d="M24 112 L34 86 L66 86 L76 112 Z" fill="rgba(255,255,255,.14)"/>`;
+  else if (outfitId === "apron") outfit = `<path d="M40 74 L42 110 L58 110 L60 74 Z" fill="rgba(255,255,255,.62)"/><path d="M43 74 Q50 66 57 74" stroke="rgba(255,255,255,.62)" stroke-width="3" fill="none"/>`;
+  else if (outfitId === "jersey") outfit = `<rect x="12" y="78" width="76" height="6" fill="rgba(255,255,255,.5)"/><text x="50" y="104" font-size="20" font-family="sans-serif" font-weight="700" fill="#fff" text-anchor="middle">7</text>`;
+  else if (outfitId === "suit") outfit = `<path d="M50 70 L38 110 L45 110 L50 84 L55 110 L62 110 Z" fill="rgba(0,0,0,.2)"/><path d="M48 76 L52 76 L54 96 L50 102 L46 96 Z" fill="#b5423a"/>`;
+
+  // ---- hat (on top of everything) ----
+  const hatId = HATS[(d.hat ?? 0) % HATS.length].id;
+  let hat = "";
+  if (hatId === "cap") hat = `<path d="M30 27 Q50 7 70 27 Z" fill="#e0574a"/><path d="M62 27 L88 31 L62 33 Z" fill="#c54a3e"/>`;
+  else if (hatId === "beanie") hat = `<path d="M28 30 Q50 6 72 30 Z" fill="#6a8fd0"/><rect x="28" y="26" width="44" height="7" rx="3" fill="#567abe"/>`;
+  else if (hatId === "flowercrown") hat = `<g fill="#ff9ec4"><circle cx="34" cy="20" r="3.2"/><circle cx="45" cy="15" r="3.2"/><circle cx="55" cy="15" r="3.2"/><circle cx="66" cy="20" r="3.2"/></g><g fill="#f7d24a"><circle cx="34" cy="20" r="1.3"/><circle cx="45" cy="15" r="1.3"/><circle cx="55" cy="15" r="1.3"/><circle cx="66" cy="20" r="1.3"/></g>`;
+  else if (hatId === "party") hat = `<path d="M50 1 L60 28 L40 28 Z" fill="#f0b23e"/><circle cx="50" cy="1" r="3" fill="#e05a4a"/><circle cx="46" cy="16" r="2" fill="#fff"/><circle cx="55" cy="22" r="2" fill="#fff"/>`;
+  else if (hatId === "captain") hat = `<path d="M28 28 L72 28 L68 15 Q50 7 32 15 Z" fill="#20304a"/><rect x="26" y="26" width="48" height="6" rx="2" fill="#16233a"/><circle cx="50" cy="19" r="4" fill="#f0c020"/>`;
+  else if (hatId === "hardhat") hat = `<path d="M30 28 Q50 6 70 28 Z" fill="#f2c200"/><rect x="26" y="26" width="48" height="5" rx="2" fill="#e0b000"/><rect x="48" y="12" width="4" height="12" fill="#e0b000"/>`;
+
+  return shirtPath + outfit + back + head + front + face + extra + hat;
 }
 
 export function Character({ look, className }: { look: CharacterLook; className?: string }) {
@@ -94,6 +115,8 @@ export function charFor(seed: string): CharacterLook {
     hair: (h >> 6) % HAIRS.length,
     shirt: (h >> 9) % SHIRTS.length,
     acc: (h >> 12) % ACCS.length,
+    outfit: (h >> 18) % OUTFITS.length,
+    hat: (h >> 21) % HATS.length,
   };
 }
 export function randomChar(): CharacterLook {
@@ -104,8 +127,10 @@ export function randomChar(): CharacterLook {
     hair: rnd(HAIRS.length),
     shirt: rnd(SHIRTS.length),
     acc: rnd(ACCS.length),
+    outfit: rnd(5),
+    hat: rnd(4),
   };
 }
 export function cloneChar(c: CharacterLook): CharacterLook {
-  return { species: c.species, skin: c.skin, haircolor: c.haircolor, hair: c.hair, shirt: c.shirt, acc: c.acc };
+  return { species: c.species, skin: c.skin, haircolor: c.haircolor, hair: c.hair, shirt: c.shirt, acc: c.acc, outfit: c.outfit ?? 0, hat: c.hat ?? 0 };
 }

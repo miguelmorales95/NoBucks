@@ -8,7 +8,7 @@ function PactCard({ p, onOpen }: { p: Listing; onOpen: (p: Listing) => void }) {
     <article className="card" onClick={() => onOpen(p)}>
       <PhotoBanner item={p} />
       <div className="row">
-        <Avatar name={p.name} cat={p.cat} />
+        <Avatar name={p.name} cat={p.cat} trust={p.trust} />
         <div className="body">
           <div className="meta">
             <span>{p.name}</span><span className="dot" />

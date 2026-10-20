@@ -23,6 +23,8 @@ export function PostScreen() {
   const [cost, setCost] = useState(3);
   const [photo, setPhoto] = useState<string | undefined>(undefined);
   const [photoFile, setPhotoFile] = useState<File | undefined>(undefined);
+  const [place, setPlace] = useState("");
+  const [willTravel, setWillTravel] = useState(false);
   const showCost = type !== "pact";
 
   const onPhoto = (e: ChangeEvent<HTMLInputElement>) => {
@@ -37,7 +39,7 @@ export function PostScreen() {
 
   const submit = () => {
     if (!title.trim()) { actions.toast("Give your post a title first ✏️"); return; }
-    actions.post({ type, cat, title: title.trim(), blurb: blurb.trim(), cost: type === "pact" ? "pact" : cost, photo, photoFile });
+    actions.post({ type, cat, title: title.trim(), blurb: blurb.trim(), cost: type === "pact" ? "pact" : cost, photo, photoFile, locationLabel: place.trim() || undefined, willTravel });
   };
 
   return (
@@ -83,6 +85,16 @@ export function PostScreen() {
         <label>A little more</label>
         <textarea value={blurb} placeholder="When you’re free, what to expect, anything that helps a neighbor say yes." onChange={(e) => setBlurb(e.target.value)} />
       </div>
+      <div className="field">
+        <label>Where (optional)</label>
+        <input value={place} placeholder="e.g. my porch, Echo Park Lake, your place" onChange={(e) => setPlace(e.target.value)} />
+      </div>
+      {type !== "pact" && (
+        <label className="sharerow">
+          <input type="checkbox" checked={willTravel} onChange={(e) => setWillTravel(e.target.checked)} />
+          <span>🚗 I can come to you</span>
+        </label>
+      )}
       {showCost ? (
         <div className="field">
           <label>{type === "request" ? "Sprouts you’ll give" : "Sprouts you’d like"} <span style={{ fontWeight: 600, textTransform: "none", letterSpacing: 0 }}>(≈ 1 per hour — or free)</span></label>

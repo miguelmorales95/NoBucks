@@ -30,6 +30,8 @@ export interface Listing {
   members?: string[];
   open?: boolean; // accepting join requests
   locations?: { label: string; mx: number; my: number }[];
+  willTravel?: boolean; // poster will come to you
+  trust?: TrustLevel;   // author trust
 }
 
 export interface Notif {
@@ -64,6 +66,8 @@ export interface EventItem {
   photo?: string;
 }
 
+export type TrustLevel = "green" | "yellow" | "red";
+
 export interface CharacterLook {
   species: number;   // index into SPECIES
   skin: number;      // index into SKINS (person) or FURS (animal)
@@ -71,6 +75,8 @@ export interface CharacterLook {
   hair: number;      // index into HAIRS (person only)
   shirt: number;     // index into SHIRTS
   acc: number;       // index into ACCS
+  outfit: number;    // index into OUTFITS (clothing style)
+  hat: number;       // index into HATS (0 = none)
 }
 
 export interface Villager {
@@ -79,6 +85,7 @@ export interface Villager {
   char: CharacterLook;
   kind: "app" | "off"; // on Clover, or a private off-app keepsake
   note: string;
+  trust?: TrustLevel;
 }
 
 export interface Msg {
@@ -154,4 +161,5 @@ export type Sheet =
   | { kind: "createEvent" }
   | { kind: "sticker"; toName: string }
   | { kind: "circle" }
+  | { kind: "wardrobe" }
   | null;

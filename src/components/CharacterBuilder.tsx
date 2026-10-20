@@ -1,9 +1,9 @@
 import type { CharacterLook } from "../types";
-import { SPECIES, SKINS, FURS, HAIRCOLORS, HAIRS, SHIRTS, ACCS } from "../data";
+import { SPECIES, SKINS, FURS, HAIRCOLORS, HAIRS, SHIRTS, ACCS, OUTFITS, HATS } from "../data";
 
 export function CharacterBuilder({
-  look, onChange,
-}: { look: CharacterLook; onChange: (next: CharacterLook) => void }) {
+  look, onChange, wardrobe,
+}: { look: CharacterLook; onChange: (next: CharacterLook) => void; wardrobe?: string[] }) {
   const isPerson = SPECIES[look.species].k === "person";
 
   function set(key: keyof CharacterLook, i: number) {
@@ -20,8 +20,7 @@ export function CharacterBuilder({
       <div className="pl">{label}</div>
       <div className="swatches">
         {arr.map((val, i) => (
-          <button key={i} className="sw" aria-pressed={look[key] === i}
-            style={{ background: val }} aria-label={`${label} ${i + 1}`} onClick={() => set(key, i)} />
+          <button key={i} className="sw" aria-pressed={look[key] === i} style={{ background: val }} aria-label={`${label} ${i + 1}`} onClick={() => set(key, i)} />
         ))}
       </div>
     </div>
@@ -33,6 +32,23 @@ export function CharacterBuilder({
         {arr.map((val, i) => (
           <button key={i} className="opt2" aria-pressed={look[key] === i} onClick={() => set(key, i)}>{val}</button>
         ))}
+      </div>
+    </div>
+  );
+  const wearRow = (label: string, key: keyof CharacterLook, arr: { id: string; name: string; earn?: string }[]) => (
+    <div className="picker">
+      <div className="pl">{label}</div>
+      <div className="opts">
+        {arr.map((o, i) => {
+          const locked = wardrobe ? !wardrobe.includes(o.id) : false;
+          return (
+            <button key={o.id} className={"opt2" + (locked ? " locked" : "")} aria-pressed={look[key] === i}
+              disabled={locked} title={locked && o.earn ? `Earn: ${o.earn}` : o.name}
+              onClick={() => { if (!locked) set(key, i); }}>
+              {locked ? "🔒 " : ""}{o.name}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -50,7 +66,9 @@ export function CharacterBuilder({
       {colorRow(isPerson ? "Skin" : "Fur", "skin", isPerson ? SKINS : FURS)}
       {isPerson && optRow("Hair", "hair", HAIRS)}
       {colorRow(isPerson ? "Hair colour" : "Markings", "haircolor", HAIRCOLORS)}
-      {colorRow("Shirt", "shirt", SHIRTS)}
+      {wearRow("Outfit", "outfit", OUTFITS)}
+      {wearRow("Hat", "hat", HATS)}
+      {colorRow("Colour", "shirt", SHIRTS)}
       {optRow("Extra", "acc", ACCS)}
     </div>
   );

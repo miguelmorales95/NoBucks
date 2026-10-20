@@ -34,8 +34,26 @@ function SheetBody({ sheet }: { sheet: NonNullable<Sheet> }) {
     case "event": { const ev = state.events.find((e) => e.id === sheet.id); return ev ? <EventSheet ev={ev} /> : null; }
     case "createEvent": return <CreateEventSheet />;
     case "sticker": return <StickerSheet toName={sheet.toName} />;
+    case "wardrobe": return <WardrobeSheet />;
     default: return null;
   }
+}
+
+function WardrobeSheet() {
+  const { state, actions } = useStore();
+  const [look, setLook] = useState<CharacterLook>(() => ({ ...state.player.char }));
+  return (
+    <>
+      <h2>Your wardrobe 👕</h2>
+      <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 14px" }}>Re-dress your villager anytime. Locked items are earned by giving.</p>
+      <div className="charprev"><Character look={look} /></div>
+      <div style={{ marginTop: 14 }}><CharacterBuilder look={look} onChange={setLook} wardrobe={state.wardrobe} /></div>
+      <div className="actions">
+        <button className="btn btn-primary" onClick={() => actions.setLook(look)}>Save look</button>
+        <button className="btn btn-ghost" onClick={actions.closeSheet}>Cancel</button>
+      </div>
+    </>
+  );
 }
 
 function ItemSheet({ item }: { item: Listing }) {
@@ -50,7 +68,7 @@ function ItemSheet({ item }: { item: Listing }) {
     <>
       <PhotoBanner item={item} big />
       <div className="sh-head">
-        <Avatar name={item.name} cat={item.cat} />
+        <Avatar name={item.name} cat={item.cat} trust={item.trust} />
         <div>
           <h2>{item.title}</h2>
           <div className="sh-meta"><span>{item.name}</span>{item.neighborhood && <><span>·</span><span>🏘️ {item.neighborhood}</span></>}<span>·</span><span>{dist}</span><span>·</span><RateBadge item={item} /></div>
@@ -58,6 +76,13 @@ function ItemSheet({ item }: { item: Listing }) {
       </div>
       <div className="blurb">{item.blurb}</div>
       {item.type === "pact" && <PactDetails item={item} />}
+      {item.willTravel && <div className="travelbadge">🚗 {firstName(item.name)} can come to you</div>}
+      {item.type !== "pact" && item.locations && item.locations.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div className="pm-label" style={{ marginBottom: 8 }}>📍 Where</div>
+          <LocationsMap locations={item.locations} />
+        </div>
+      )}
       {item.review && (
         <div className="review">
           <div style={{ fontSize: 22 }}>💬</div>
@@ -119,11 +144,12 @@ function VillagerSheet({ index }: { index: number }) {
   return (
     <>
       <div style={{ textAlign: "center" }}>
-        <div style={{ width: 120, height: 132, margin: "4px auto 2px" }}><Character look={v.char} /></div>
+        <div className={"charring big-ring" + (v.trust ? " trust-" + v.trust : "")} style={{ width: 128, height: 140, margin: "4px auto 2px" }}><Character look={v.char} /></div>
         <h2 style={{ textAlign: "center" }}>{v.name}</h2>
         <div className="sh-meta" style={{ justifyContent: "center" }}>
           {v.kind === "off" ? "💛 Added by you · not on Clover" : `${CATS[v.cat].e} ${CATS[v.cat].label} · a Clover neighbor`}
         </div>
+        <div className="trustlegend">{v.trust === "green" ? "🟢 Fully trusted" : v.trust === "red" ? "🔴 Unvetted — be careful" : "🟡 Getting known"} · 🟢 trusted · 🟡 known · 🔴 unvetted</div>
       </div>
       <div className="blurb" style={{ marginTop: 14 }}>{v.note}</div>
       <div className="actions"><button className="btn btn-ghost" onClick={actions.closeSheet}>Close</button></div>
@@ -273,6 +299,17 @@ function CreateEventSheet() {
 
 const PACT_MAP = `<svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="400" height="240" fill="var(--map-land)"/><g fill="var(--map-block)"><rect x="18" y="16" width="110" height="60" rx="10"/><rect x="250" y="150" width="120" height="70" rx="10"/></g><g stroke="var(--map-road)" stroke-width="20" stroke-linecap="round"><line x1="-10" y1="92" x2="410" y2="92"/><line x1="-10" y1="168" x2="410" y2="168"/><line x1="150" y1="-10" x2="150" y2="250"/><line x1="280" y1="-10" x2="280" y2="250"/></g><rect x="300" y="100" width="110" height="80" rx="22" fill="var(--map-park)"/><g fill="var(--map-tree)"><circle cx="330" cy="140" r="12"/><circle cx="362" cy="130" r="10"/></g></svg>`;
 
+function LocationsMap({ locations }: { locations: { label: string; mx: number; my: number }[] }) {
+  return (
+    <div className="pactmap">
+      <div style={{ position: "absolute", inset: 0 }} dangerouslySetInnerHTML={{ __html: PACT_MAP }} />
+      {locations.map((l, i) => (
+        <div className="ploc" key={i} style={{ left: l.mx + "%", top: l.my + "%" }}><span className="ploc-pin">📍</span><span className="ploc-lab">{l.label}</span></div>
+      ))}
+    </div>
+  );
+}
+
 function PactDetails({ item }: { item: Listing }) {
   const locs = item.locations ?? [];
   return (
@@ -286,12 +323,7 @@ function PactDetails({ item }: { item: Listing }) {
       {locs.length > 0 && (
         <div style={{ marginBottom: 14 }}>
           <div className="pm-label" style={{ marginBottom: 8 }}>📍 Where it happens</div>
-          <div className="pactmap">
-            <div style={{ position: "absolute", inset: 0 }} dangerouslySetInnerHTML={{ __html: PACT_MAP }} />
-            {locs.map((l, i) => (
-              <div className="ploc" key={i} style={{ left: l.mx + "%", top: l.my + "%" }}><span className="ploc-pin">📍</span><span className="ploc-lab">{l.label}</span></div>
-            ))}
-          </div>
+          <LocationsMap locations={locs} />
         </div>
       )}
     </>

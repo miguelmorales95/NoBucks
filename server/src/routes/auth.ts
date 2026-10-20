@@ -6,16 +6,26 @@ import { signToken, requireAuth, wrap, type AuthedRequest } from "../auth";
 
 const router = Router();
 
-const DEFAULT_LOOK = { species: 0, skin: 1, haircolor: 1, hair: 0, shirt: 1, acc: 0 };
+const DEFAULT_LOOK = { species: 0, skin: 1, haircolor: 1, hair: 0, shirt: 1, acc: 0, outfit: 0, hat: 0 };
+const DEFAULT_WARDROBE = ["plain", "stripes", "overalls", "hoodie", "dress", "none", "cap", "beanie", "flowercrown"];
+
+export function trustOf(verified: boolean, rating: number): "green" | "yellow" | "red" {
+  if (!verified) return "yellow";
+  return rating >= 4.8 ? "green" : "yellow";
+}
 
 function publicUser(u: {
   id: string; email: string; name: string; balance: number; rating: number;
   reviews: number; verified: boolean; charLook: unknown; neighborhood: string | null; role?: string;
+  villageTheme?: string; wardrobe?: unknown;
 }) {
   return {
     id: u.id, email: u.email, name: u.name, balance: u.balance, rating: u.rating,
     reviews: u.reviews, verified: u.verified, char: u.charLook, neighborhood: u.neighborhood,
     role: (u.role ?? "MEMBER").toLowerCase(),
+    villageTheme: u.villageTheme ?? "neighborhood",
+    wardrobe: Array.isArray(u.wardrobe) ? u.wardrobe : [],
+    trust: trustOf(u.verified, u.rating),
   };
 }
 
@@ -38,6 +48,7 @@ router.post("/register", wrap(async (req, res) => {
       name: body.name,
       passwordHash: await bcrypt.hash(body.password, 10),
       charLook: body.char ?? DEFAULT_LOOK,
+      wardrobe: DEFAULT_WARDROBE,
       lat: body.lat,
       lng: body.lng,
       transactions: { create: { amount: 12, kind: "GRANT", note: "Welcome grant" } },

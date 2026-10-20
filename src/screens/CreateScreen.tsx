@@ -21,7 +21,7 @@ export function CreateScreen() {
         <label>Your name</label>
         <input value={name} maxLength={24} placeholder="What should neighbors call you?" onChange={(e) => setName(e.target.value)} />
       </div>
-      <CharacterBuilder look={state.draft} onChange={actions.setDraft} />
+      <CharacterBuilder look={state.draft} onChange={actions.setDraft} wardrobe={state.wardrobe} />
       <button className="btn btn-primary" style={{ marginTop: 6 }} onClick={() => actions.finishCreate(name)}>Enter Clover 🍀</button>
       <button className="btn btn-ghost" style={{ marginTop: 9 }} onClick={() => actions.finishCreate(name)}>Skip for now</button>
     </div>

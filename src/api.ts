@@ -38,6 +38,8 @@ export const api = {
     request<{ token: string; user: unknown }>("/auth/login", { method: "POST", body: JSON.stringify(b) }),
   me: () => request<{ user: unknown }>("/auth/me"),
   verify: (method: string) => request<{ user: unknown }>("/auth/verify", { method: "POST", body: JSON.stringify({ method }) }),
+  updateMe: (b: { char?: Record<string, number>; villageTheme?: string; wardrobe?: string[] }) =>
+    request<{ user: unknown }>("/me/update", { method: "POST", body: JSON.stringify(b) }),
 
   // listings
   feed: (q: { type?: string; category?: string; lat?: number; lng?: number; maxDist?: number }) => {

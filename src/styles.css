@@ -429,4 +429,29 @@ input[type="range"].slider:focus-visible{outline:3px solid rgba(44,163,151,.4)}
 .ploc-pin{font-size:20px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.25))}
 .ploc-lab{background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11px;font-weight:800;white-space:nowrap;margin-top:-4px;box-shadow:var(--shadow-soft)}
 
+/* trust rings */
+.avatar.trust-green{box-shadow:0 0 0 3px #4e9c6b}
+.avatar.trust-yellow{box-shadow:0 0 0 3px #f0b23e}
+.avatar.trust-red{box-shadow:0 0 0 3px #e4572e}
+.me.t-green{box-shadow:0 0 0 3px #4e9c6b}
+.walker.t-green svg{filter:drop-shadow(0 0 2.5px rgba(78,156,107,.95))}
+.walker.t-yellow svg{filter:drop-shadow(0 0 2.5px rgba(240,178,62,.95))}
+.walker.t-red svg{filter:drop-shadow(0 0 3px rgba(228,87,46,1))}
+.charring{border-radius:24px;display:grid;place-items:center;background:#dff1ef;overflow:hidden}
+.charring.trust-green{box-shadow:0 0 0 3px #4e9c6b}
+.charring.trust-yellow{box-shadow:0 0 0 3px #f0b23e}
+.charring.trust-red{box-shadow:0 0 0 3px #e4572e}
+.charring svg{width:112%;height:112%;margin-top:9%}
+.trustlegend{font-size:11.5px;color:var(--muted);font-weight:700;margin-top:8px}
+
+/* village theme row + change-look */
+.theme-row{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.theme-row button{width:40px;height:40px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);font-size:20px;cursor:pointer}
+.theme-row button[aria-pressed="true"]{border-color:var(--teal);background:rgba(44,163,151,.12);transform:scale(1.06)}
+.theme-row .dressbtn{width:auto;flex:1;min-width:120px;font-family:var(--font-display);font-weight:600;font-size:13.5px;background:var(--surface-2);border:1.5px solid var(--line);border-radius:12px;color:var(--ink);padding:0 12px;height:40px;cursor:pointer}
+
+/* wardrobe locked + will-travel */
+.opt2.locked{opacity:.5;cursor:not-allowed}
+.travelbadge{display:inline-block;background:rgba(44,163,151,.12);color:var(--teal);border:1.5px solid var(--teal);border-radius:999px;padding:6px 13px;font-weight:800;font-size:13px;margin-bottom:14px}
+
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}

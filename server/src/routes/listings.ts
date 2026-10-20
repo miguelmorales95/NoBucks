@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../db";
 import { requireAuth, wrap, type AuthedRequest } from "../auth";
+import { trustOf } from "./auth";
 import type { Category, CostType, ListingType } from "@prisma/client";
 
 const router = Router();
@@ -22,7 +23,8 @@ function listingDTO(
     id: string; type: ListingType; category: Category; title: string; blurb: string;
     costType: CostType; cost: number | null; unit: string; photoUrl: string | null;
     neighborhood: string | null; rating: number; reviews: number;
-    author: { id: string; name: string; rating: number; reviews: number };
+    willTravel?: boolean; locations?: unknown;
+    author: { id: string; name: string; rating: number; reviews: number; verified: boolean };
   },
   dist: number
 ) {
@@ -35,6 +37,8 @@ function listingDTO(
     name: l.author.name, authorId: l.author.id,
     title: l.title, blurb: l.blurb, cost, unit: l.unit, photo: l.photoUrl ?? undefined,
     neighborhood: l.neighborhood ?? undefined,
+    willTravel: l.willTravel ?? false, locations: l.locations ?? undefined,
+    trust: trustOf(l.author.verified, l.author.rating),
     dist: Math.round(dist * 10) / 10, rating: l.rating, reviews: l.reviews,
   };
 }
@@ -63,7 +67,7 @@ router.get("/", requireAuth, wrap(async (req: AuthedRequest, res) => {
       type: q.type ? (q.type.toUpperCase() as ListingType) : undefined,
       category: q.category ? (q.category.toUpperCase() as Category) : undefined,
     },
-    include: { author: { select: { id: true, name: true, rating: true, reviews: true } } },
+    include: { author: { select: { id: true, name: true, rating: true, reviews: true, verified: true } } },
     orderBy: { createdAt: "desc" },
     take: 200,
   });
@@ -87,6 +91,8 @@ const createSchema = z.object({
   unit: z.string().max(20).default(""),
   photoUrl: z.string().url().optional(),
   neighborhood: z.string().max(60).optional(),
+  willTravel: z.boolean().optional(),
+  locations: z.array(z.object({ label: z.string(), mx: z.number(), my: z.number() })).optional(),
 });
 
 router.post("/", requireAuth, wrap(async (req: AuthedRequest, res) => {
@@ -102,9 +108,11 @@ router.post("/", requireAuth, wrap(async (req: AuthedRequest, res) => {
       cost: b.costType === "SPROUTS" ? b.cost ?? 0 : null,
       unit: b.unit, photoUrl: b.photoUrl,
       neighborhood: b.neighborhood ?? me?.neighborhood,
+      willTravel: b.willTravel ?? false,
+      locations: b.locations ?? undefined,
       lat: me?.lat, lng: me?.lng,
     },
-    include: { author: { select: { id: true, name: true, rating: true, reviews: true } } },
+    include: { author: { select: { id: true, name: true, rating: true, reviews: true, verified: true } } },
   });
   res.json({ listing: listingDTO(listing, 0) });
 }));
@@ -112,7 +120,7 @@ router.post("/", requireAuth, wrap(async (req: AuthedRequest, res) => {
 router.get("/:id", requireAuth, wrap(async (req, res) => {
   const listing = await prisma.listing.findUnique({
     where: { id: req.params.id },
-    include: { author: { select: { id: true, name: true, rating: true, reviews: true } } },
+    include: { author: { select: { id: true, name: true, rating: true, reviews: true, verified: true } } },
   });
   if (!listing) return res.status(404).json({ error: "Not found" });
   res.json({ listing: listingDTO(listing, 0) });
