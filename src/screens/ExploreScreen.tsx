@@ -86,6 +86,26 @@ function MapView() {
   );
 }
 
+function GratitudesFeed() {
+  const { state } = useStore();
+  if (!state.gratitudes.length) {
+    return <div className="empty"><span className="e">💛</span>No thank-yous yet.<br />Finish a trade and leave the first one!</div>;
+  }
+  return (
+    <div className="feed">
+      {state.gratitudes.map((g) => (
+        <div className="grat" key={g.id}>
+          <Avatar name={g.fromName} cat={g.cat} />
+          <div className="gbody">
+            <div className="ghead"><b>{g.fromName}</b> thanked <b>{g.toName}</b> <span className="gwhen">· {g.when}</span></div>
+            <div className="gtext">“{g.text}”</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function ExploreScreen() {
   const { state, actions } = useStore();
   const open = (item: Listing) => actions.openSheet({ kind: "item", id: item.id });
@@ -102,33 +122,38 @@ export function ExploreScreen() {
 
   return (
     <>
-      <div className="screen-title">{state.exView === "map" ? "Explore Echo Park" : "What’s growing nearby 🌼"}</div>
+      <div className="screen-title">{state.exView === "thanks" ? "Gratitudes 💛" : state.exView === "map" ? "Explore the map" : "What’s growing nearby 🌼"}</div>
       <div className="screen-sub">
-        {state.exView === "map"
-          ? "Drag the distance slider, then tap a pin to peek. Far pins fade out until you widen your range."
-          : "Offers and asks from neighbors. Drag the slider to reach as far as you like."}
+        {state.exView === "thanks"
+          ? "Thank-yous from neighbors after real trades — kindness made visible."
+          : state.exView === "map"
+          ? "Pick an area, then tap a pin to peek. Out-of-area pins fade out."
+          : "Offers and asks from neighbors. Start in your area, reach wider when you need to."}
       </div>
       <div className="seg">
         <button aria-pressed={state.exView === "list"} onClick={() => actions.setExView("list")}>🗂️ List</button>
         <button aria-pressed={state.exView === "map"} onClick={() => actions.setExView("map")}>🗺️ Map</button>
+        <button aria-pressed={state.exView === "thanks"} onClick={() => actions.setExView("thanks")}>💛 Thanks</button>
       </div>
-      <div className="seg">
-        <button aria-pressed={state.hoodScope === "mine"} onClick={() => actions.setHoodScope("mine")}>🏡 {state.player.neighborhood}</button>
-        <button aria-pressed={state.hoodScope === "nearby"} onClick={() => actions.setHoodScope("nearby")}>🏘️ Nearby</button>
-        <button aria-pressed={state.hoodScope === "all"} onClick={() => actions.setHoodScope("all")}>🌆 All LA</button>
-      </div>
-      {state.exView === "list" && (
-        <div className="field" style={{ marginBottom: 12 }}>
-          <input
-            value={state.query}
-            placeholder="Search offers & requests…"
-            onChange={(e) => actions.setQuery(e.target.value)}
-          />
-        </div>
+      {state.exView !== "thanks" && (
+        <>
+          <div className="seg">
+            <button aria-pressed={state.hoodScope === "mine"} onClick={() => actions.setHoodScope("mine")}>🏡 {state.player.neighborhood}</button>
+            <button aria-pressed={state.hoodScope === "nearby"} onClick={() => actions.setHoodScope("nearby")}>🏘️ Nearby</button>
+            <button aria-pressed={state.hoodScope === "all"} onClick={() => actions.setHoodScope("all")}>🌆 All LA</button>
+          </div>
+          {state.exView === "list" && (
+            <div className="field" style={{ marginBottom: 12 }}>
+              <input value={state.query} placeholder="Search offers & requests…" onChange={(e) => actions.setQuery(e.target.value)} />
+            </div>
+          )}
+          {state.hoodScope === "all" && <DistanceSlider />}
+          <ChipsBar />
+        </>
       )}
-      {state.hoodScope === "all" && <DistanceSlider />}
-      <ChipsBar />
-      {state.exView === "map" ? <MapView /> : (
+      {state.exView === "thanks" ? <GratitudesFeed />
+        : state.exView === "map" ? <MapView />
+        : (
         <div className="feed">
           {list.length
             ? list.map((it) => <ListingCard key={it.id} item={it} onOpen={open} />)

@@ -57,6 +57,10 @@ enum TxnKind {
   RELEASE
   EARN
   REFUND
+  GIFT
+  OVERFLOW
+  DEMURRAGE
+  DRAW
 }
 
 enum VillagerKind {
@@ -253,4 +257,23 @@ model Device {
   createdAt DateTime @default(now())
 
   @@unique([userId, token])
+}
+
+// Singleton row ("global"): the neighborhood's shared sprout pot.
+model CommunityPot {
+  id        String   @id @default("global")
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model Gratitude {
+  id        String   @id @default(uuid())
+  fromId    String
+  fromName  String
+  toName    String
+  category  Category
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

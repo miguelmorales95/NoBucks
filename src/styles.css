@@ -316,4 +316,27 @@ input[type="range"].slider:focus-visible{outline:3px solid rgba(44,163,151,.4)}
 .photoedit img{width:100%;max-height:200px;object-fit:cover;border-radius:14px;border:1.5px solid var(--line)}
 .photoedit .opt2{align-self:flex-start}
 
+/* anti-hoarding: cap meter + community pot */
+.capbar{height:8px;border-radius:999px;background:rgba(255,255,255,.25);overflow:hidden;margin:4px 0 2px}
+.capbar span{display:block;height:100%;border-radius:999px;background:#fff;transition:width .3s}
+.pot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r-md);padding:13px 14px;box-shadow:var(--shadow-soft);margin-top:12px}
+.pot-l{display:flex;align-items:center;gap:11px;min-width:0}
+.pot-ic{width:42px;height:42px;border-radius:12px;background:var(--surface-2);display:grid;place-items:center;font-size:22px;flex:none}
+.pot-l b{font-family:var(--font-display);font-weight:600;font-size:15px;display:block}
+.pot-l span{font-size:12.5px;color:var(--muted)}
+.pot-actions{display:flex;gap:8px}
+.pot-actions .btn{width:auto;padding:9px 14px;font-size:13.5px}
+
+/* gratitudes feed */
+.grat{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r-md);padding:13px 14px;box-shadow:var(--shadow-soft)}
+.grat .gbody{min-width:0}
+.ghead{font-size:13px;color:var(--muted);font-weight:700}
+.ghead b{color:var(--ink);font-family:var(--font-display);font-weight:600}
+.gwhen{color:var(--muted);font-weight:700}
+.gtext{font-size:14px;color:var(--ink);line-height:1.5;margin-top:4px;font-style:italic}
+
+/* share-a-thanks toggle */
+.sharerow{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:14px;cursor:pointer;font-weight:700;font-size:14px;color:var(--ink)}
+.sharerow input{width:20px;height:20px;accent-color:var(--teal);flex:none}
+
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}

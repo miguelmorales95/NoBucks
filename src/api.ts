@@ -80,6 +80,15 @@ export const api = {
   block: (blockedId: string) => request<{ ok: true }>("/moderation/blocks", { method: "POST", body: JSON.stringify({ blockedId }) }),
   blocks: () => request<{ blockedIds: string[] }>("/moderation/blocks"),
 
+  // economy: community pot
+  pot: () => request<{ balance: number }>("/wallet/pot"),
+  gift: (amount: number) => request<{ ok: true }>("/wallet/gift", { method: "POST", body: JSON.stringify({ amount }) }),
+
+  // gratitudes
+  gratitudes: () => request<{ gratitudes: unknown[] }>("/gratitudes"),
+  addGratitude: (b: { toName: string; category: string; text: string }) =>
+    request<{ gratitude: unknown }>("/gratitudes", { method: "POST", body: JSON.stringify(b) }),
+
   // notifications
   notifications: () => request<{ notifications: unknown[] }>("/notifications"),
   markRead: () => request<{ ok: true }>("/notifications/read", { method: "POST" }),

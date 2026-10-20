@@ -1,8 +1,8 @@
 import { createContext, useContext, useMemo, useReducer, useRef, type ReactNode } from "react";
 import type {
-  Activity, CharacterLook, Cat, ExView, Listing, Notif, Sheet, Stage, Tab, Thread, ThreadRole, Villager,
+  Activity, CharacterLook, Cat, ExView, Gratitude, Listing, Notif, Sheet, Stage, Tab, Thread, ThreadRole, Villager,
 } from "./types";
-import { CATS, DIST, REPLIES, SEED_ITEMS, HOME_HOOD } from "./data";
+import { CATS, DIST, REPLIES, SEED_ITEMS, HOME_HOOD, SPROUT_CAP, POT_SEED, SEED_GRATITUDES } from "./data";
 import { charFor, cloneChar, randomChar } from "./character";
 import { api, setToken } from "./api";
 
@@ -23,6 +23,7 @@ interface State {
   draft: CharacterLook;
   items: Listing[]; village: Villager[]; threads: Thread[]; activity: Activity[];
   notifications: Notif[]; blocked: string[];
+  communityPot: number; gratitudes: Gratitude[];
 }
 
 const firstName = (n: string) => n.split(/[ &]/)[0];
@@ -58,6 +59,7 @@ function initialState(): State {
       { id: "n1", icon: "🌱", title: "Welcome to Clover", body: "You've got 12 sprouts to start. Say hi to a neighbor!", read: false },
     ],
     blocked: [],
+    communityPot: POT_SEED, gratitudes: SEED_GRATITUDES as Gratitude[],
   };
 }
 
@@ -79,6 +81,8 @@ export interface Actions {
   block(item: Listing): void; report(item: Listing, reason: string): void;
   toast(msg: string): void; notify(icon: string, title: string, body: string): void;
   markNotifsRead(): void; enableNotifications(): void;
+  gift(amount: number): void; demurrageWeek(): void; drawFromPot(): void;
+  addGratitude(to: string, cat: Cat, text: string): void;
 }
 
 interface Store { state: State; actions: Actions; }
@@ -110,6 +114,9 @@ function mapVillager(d: any): Villager {
 }
 function mapNotif(d: any): Notif {
   return { id: String(d.id), icon: d.icon ?? "🔔", title: d.title, body: d.body, read: !!d.read };
+}
+function mapGratitude(d: any): Gratitude {
+  return { id: String(d.id), fromName: d.fromName, toName: d.toName, cat: String(d.category ?? "care").toLowerCase() as Cat, text: d.text, when: d.when ?? "recently" };
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -145,8 +152,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     // ---- API-mode loaders ----
     const bootstrap = async () => {
-      const [{ user }, feed, th, vil, notifs] = await Promise.all([
-        api.me(), api.feed({}), api.threads(), api.village(), api.notifications(),
+      const [{ user }, feed, th, vil, notifs, grat, pot] = await Promise.all([
+        api.me(), api.feed({}), api.threads(), api.village(), api.notifications(), api.gratitudes(), api.pot(),
       ]);
       const u = user as any;
       s.meId = u.id; s.balance = u.balance ?? 0;
@@ -155,6 +162,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       s.threads = (th.threads as any[]).map((t) => mapThread(t, u.id));
       s.village = (vil.villagers as any[]).map(mapVillager);
       s.notifications = (notifs.notifications as any[]).map(mapNotif);
+      s.gratitudes = (grat.gratitudes as any[]).map(mapGratitude);
+      s.communityPot = (pot as any).balance ?? s.communityPot;
       s.stage = "app"; s.tab = "village"; bump();
     };
     const refreshFeed = async () => { const r = await api.feed({}); s.items = (r.listings as any[]).map(mapListing); bump(); };
@@ -316,12 +325,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         if (t.status === "done") return;
         if (t.role === "provider") {
-          const reward = item && typeof item.cost === "number" ? item.cost : 0; s.balance += reward;
-          if (reward > 0 && item) s.activity.unshift({ ic: CATS[item.cat].e, cat: item.cat, t: `Earned: ${item.title} · ${item.name}`, s: "Just now", amt: reward });
+          const reward = item && typeof item.cost === "number" ? item.cost : 0;
+          const room = Math.max(0, SPROUT_CAP - s.balance);
+          const gained = Math.min(reward, room);
+          const overflow = reward - gained;
+          s.balance += gained; if (overflow > 0) s.communityPot += overflow;
+          if (gained > 0 && item) s.activity.unshift({ ic: CATS[item.cat].e, cat: item.cat, t: `Earned: ${item.title} · ${item.name}`, s: "Just now", amt: gained });
           t.status = "done";
-          t.msgs.push({ from: "sys", text: reward > 0 ? `✅ Complete! You earned ${reward} 🌱. ${firstName(t.name)} rated you ⭐` : "✅ Complete! Thanks for helping." });
-          notify("🌱", "Trade complete", reward > 0 ? `You earned ${reward} sprouts from ${firstName(t.name)}.` : `Thanks for helping ${firstName(t.name)}.`);
-          toast(reward > 0 ? `You earned ${reward} 🌱!` : "All done — thanks for helping 🙌"); bump();
+          t.msgs.push({ from: "sys", text: gained > 0 ? `✅ Complete! You earned ${gained} 🌱.${overflow > 0 ? ` ${overflow} over your cap flowed to the community pot 🫙.` : ""} ${firstName(t.name)} rated you ⭐` : "✅ Complete! Thanks for helping." });
+          notify("🌱", "Trade complete", gained > 0 ? `You earned ${gained} sprouts${overflow > 0 ? ` (+${overflow} to the pot)` : ""}.` : `Thanks for helping ${firstName(t.name)}.`);
+          toast(gained > 0 ? `You earned ${gained} 🌱!${overflow > 0 ? ` +${overflow} to the pot 🫙` : ""}` : "All done — thanks for helping 🙌"); bump();
         } else if (t.role === "joiner") {
           t.status = "done"; t.msgs.push({ from: "sys", text: `🤝 Pact on! ${firstName(t.name)} is counting on you weekly.` });
           notify("🤝", "Pact confirmed", `You joined ${firstName(t.name)}'s pact.`); toast("Pact confirmed 🤝"); bump();
@@ -361,6 +374,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             Notification.requestPermission().then((p) => toast(p === "granted" ? "Notifications on 🔔" : "Notifications stay off"));
           } else toast("This browser can't do notifications");
         } catch { toast("Couldn't enable notifications"); }
+      },
+      gift(amount) {
+        const amt = Math.min(amount, s.balance);
+        if (amt <= 0) return;
+        s.balance -= amt; s.communityPot += amt;
+        s.activity.unshift({ ic: "🫙", cat: "garden", t: "Gift to the community pot", s: "Just now", amt: -amt });
+        s.sheet = null; toast(`You gave ${amt} 🌱 to the pot 💛`);
+        if (API) api.gift(amt).catch(fail);
+        bump();
+      },
+      demurrageWeek() {
+        const idle = Math.max(0, s.balance - 10);
+        const decay = Math.floor(idle * 0.1);
+        if (decay <= 0) { toast("Nothing idle to recirculate — nicely spent! 🌿"); return; }
+        s.balance -= decay; s.communityPot += decay;
+        s.activity.unshift({ ic: "🍃", cat: "garden", t: "Weekly demurrage → community pot", s: "Just now", amt: -decay });
+        toast(`A week passed: ${decay} idle 🌱 returned to the pot.`); bump();
+      },
+      drawFromPot() {
+        const amt = Math.min(5, s.communityPot);
+        if (amt <= 0) { toast("The pot is empty right now."); return; }
+        s.communityPot -= amt; s.balance += amt;
+        s.activity.unshift({ ic: "🫙", cat: "garden", t: "Top-up from the community pot", s: "Just now", amt: amt });
+        toast(`You drew ${amt} 🌱 from the pot. Pay it forward 🌱`); bump();
+      },
+      addGratitude(to, cat, text) {
+        s.gratitudes.unshift({ id: uid(), fromName: s.player.name, toName: to, cat, text, when: "just now" });
+        if (API) api.addGratitude({ toName: to, category: cat, text }).catch(() => {});
+        bump();
       },
     };
   }, [s]);

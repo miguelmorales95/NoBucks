@@ -30,6 +30,7 @@ function SheetBody({ sheet }: { sheet: NonNullable<Sheet> }) {
     case "rating": { const it = state.items.find((i) => i.id === sheet.targetId); return it ? <RatingSheet item={it} threadId={sheet.threadId} /> : null; }
     case "report": { const it = state.items.find((i) => i.id === sheet.id); return it ? <ReportSheet item={it} /> : null; }
     case "notifications": return <NotificationsSheet />;
+    case "gift": return <GiftSheet />;
   }
 }
 
@@ -164,6 +165,12 @@ function AddVillagerSheet() {
 function RatingSheet({ item, threadId }: { item: Listing; threadId: string }) {
   const { actions } = useStore();
   const [stars, setStars] = useState(5);
+  const [note, setNote] = useState("");
+  const [share, setShare] = useState(true);
+  const submit = () => {
+    if (share && note.trim()) actions.addGratitude(item.name, item.cat, note.trim());
+    actions.rate(threadId, item.id, stars);
+  };
   return (
     <>
       <h2 style={{ textAlign: "center", margin: "2px 0 4px" }}>How was it with {firstName(item.name)}?</h2>
@@ -174,10 +181,36 @@ function RatingSheet({ item, threadId }: { item: Listing; threadId: string }) {
         {[1, 2, 3, 4, 5].map((n) => <button key={n} className={n <= stars ? "on" : ""} onClick={() => setStars(n)}>⭐</button>)}
       </div>
       <div className="field"><label>Add a note (optional)</label>
-        <textarea placeholder="What made it great? Anything others should know?" /></div>
+        <textarea value={note} placeholder="What made it great? Anything others should know?" onChange={(e) => setNote(e.target.value)} /></div>
+      <label className="sharerow">
+        <input type="checkbox" checked={share} onChange={(e) => setShare(e.target.checked)} />
+        <span>💛 Share this as a public thank-you</span>
+      </label>
       <div className="actions">
-        <button className="btn btn-primary" onClick={() => actions.rate(threadId, item.id, stars)}>Submit rating</button>
+        <button className="btn btn-primary" onClick={submit}>Submit rating</button>
         <button className="btn btn-ghost" onClick={actions.closeSheet}>Skip</button>
+      </div>
+    </>
+  );
+}
+
+function GiftSheet() {
+  const { state, actions } = useStore();
+  const [amt, setAmt] = useState(Math.min(5, Math.max(1, state.balance)));
+  return (
+    <>
+      <h2>Give to the community pot 🫙</h2>
+      <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 16px" }}>
+        Sprouts you don’t need keep the neighborhood moving. Neighbors who are low on sprouts can draw from the pot.
+      </p>
+      <div className="steps" style={{ justifyContent: "center", marginBottom: 18 }}>
+        <button onClick={() => setAmt(Math.max(1, amt - 1))}>–</button>
+        <div className="v">{amt} 🌱</div>
+        <button onClick={() => setAmt(Math.min(state.balance, amt + 1))}>+</button>
+      </div>
+      <div className="actions">
+        <button className="btn btn-primary" disabled={state.balance < 1} onClick={() => actions.gift(amt)}>Give {amt} 🌱</button>
+        <button className="btn btn-ghost" onClick={actions.closeSheet}>Cancel</button>
       </div>
     </>
   );

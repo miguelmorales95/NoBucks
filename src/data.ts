@@ -37,6 +37,16 @@ export const REPLIES = [
 
 export const DIST = { min: 0.5, max: 12, step: 0.5, default: 1.5 };
 
+// Anti-hoarding: a soft balance cap; over-cap and idle sprouts flow to the community pot.
+export const SPROUT_CAP = 40;
+export const POT_SEED = 128;
+
+export const SEED_GRATITUDES = [
+  { id: "g1", fromName: "Priya", toName: "Maya", cat: "food", text: "Maya's sourdough got my whole family baking together. 🍞", when: "2d" },
+  { id: "g2", fromName: "Beck", toName: "Theo", cat: "repair", text: "Theo fixed my brakes and taught me how to do it myself. Lifesaver.", when: "4d" },
+  { id: "g3", fromName: "Omar", toName: "Tessa", cat: "teach", text: "My daughter actually looks forward to math now. Thank you, Tessa!", when: "1w" },
+];
+
 // Real LA neighborhoods, with adjacency used for the "Nearby" scope.
 export const HOME_HOOD = "Echo Park";
 export const NEIGHBORHOODS: Record<string, string[]> = {

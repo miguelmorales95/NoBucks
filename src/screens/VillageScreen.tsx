@@ -1,7 +1,7 @@
 import { useStore } from "../store";
 import { VillageScene } from "../components/VillageScene";
 import { ListingCard } from "../components/listing";
-import { CATS } from "../data";
+import { CATS, SPROUT_CAP } from "../data";
 
 export function VillageScreen() {
   const { state, actions } = useStore();
@@ -22,9 +22,25 @@ export function VillageScreen() {
       </div>
       <div className="balance" style={{ marginTop: 18 }}>
         <div className="k">YOUR SPROUTS</div>
-        <div className="big">{state.balance} <small>🌱 in the bank</small></div>
-        <div className="note">Earn by helping, spend on what you need. One sprout ≈ one hour.</div>
+        <div className="big">{state.balance} <small>/ {SPROUT_CAP} 🌱</small></div>
+        <div className="capbar"><span style={{ width: Math.min(100, (state.balance / SPROUT_CAP) * 100) + "%" }} /></div>
+        <div className="note">
+          {state.balance >= SPROUT_CAP - 5
+            ? "Near your cap — spend or gift so sprouts keep moving. Earnings over the cap flow to the pot."
+            : "Earn by helping, spend on what you need. One sprout ≈ one hour."}
+        </div>
       </div>
+      <div className="pot">
+        <div className="pot-l">
+          <div className="pot-ic">🫙</div>
+          <div><b>Community pot</b><span>{state.communityPot} 🌱 · shared by the neighborhood</span></div>
+        </div>
+        <div className="pot-actions">
+          <button className="btn btn-ghost" onClick={() => actions.openSheet({ kind: "gift" })}>Give to pot</button>
+          {state.balance < 5 && <button className="btn btn-ghost" onClick={actions.drawFromPot}>Draw a little</button>}
+        </div>
+      </div>
+      <button className="btn btn-ghost" style={{ marginTop: 10 }} onClick={actions.demurrageWeek}>⏳ Let a week pass (demo: idle sprouts recirculate)</button>
       <div className="section-h">🌱 Sprout activity</div>
       <div className="ledger">
         {state.activity.map((a, i) => (

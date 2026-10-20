@@ -136,20 +136,32 @@ router.post("/:id/complete", requireAuth, wrap(async (req: AuthedRequest, res) =
   }
 
   const cost = thread.listing.costType === "SPROUTS" ? thread.listing.cost ?? 0 : 0;
+  const CAP = 40;
   const ops: any[] = [];
 
-  if (thread.escrow > 0) {
-    // Release held escrow to the provider.
-    ops.push(prisma.user.update({ where: { id: providerId }, data: { balance: { increment: thread.escrow } } }));
-    ops.push(prisma.transaction.create({ data: { userId: providerId, amount: thread.escrow, kind: "RELEASE", threadId: thread.id, listingId: thread.listingId, note: `Earned: ${thread.listing.title}` } }));
-  } else if (cost > 0) {
-    // No prior reservation — settle now from the client's balance.
+  // Debit the client now if nothing was reserved up front.
+  if (thread.escrow <= 0 && cost > 0) {
     const client = await prisma.user.findUnique({ where: { id: clientId } });
     if (!client || client.balance < cost) return res.status(400).json({ error: "Client has too few sprouts to complete" });
     ops.push(prisma.user.update({ where: { id: clientId }, data: { balance: { decrement: cost } } }));
     ops.push(prisma.transaction.create({ data: { userId: clientId, amount: -cost, kind: "RESERVE", threadId: thread.id, note: `Paid: ${thread.listing.title}` } }));
-    ops.push(prisma.user.update({ where: { id: providerId }, data: { balance: { increment: cost } } }));
-    ops.push(prisma.transaction.create({ data: { userId: providerId, amount: cost, kind: "EARN", threadId: thread.id, note: `Earned: ${thread.listing.title}` } }));
+  }
+
+  // Credit the provider up to the cap; anything over flows to the community pot.
+  const incoming = thread.escrow > 0 ? thread.escrow : cost;
+  if (incoming > 0) {
+    const provider = await prisma.user.findUnique({ where: { id: providerId } });
+    const room = Math.max(0, CAP - (provider?.balance ?? 0));
+    const gained = Math.min(incoming, room);
+    const overflow = incoming - gained;
+    if (gained > 0) {
+      ops.push(prisma.user.update({ where: { id: providerId }, data: { balance: { increment: gained } } }));
+      ops.push(prisma.transaction.create({ data: { userId: providerId, amount: gained, kind: thread.escrow > 0 ? "RELEASE" : "EARN", threadId: thread.id, listingId: thread.listingId, note: `Earned: ${thread.listing.title}` } }));
+    }
+    if (overflow > 0) {
+      ops.push(prisma.communityPot.upsert({ where: { id: "global" }, create: { id: "global", balance: overflow }, update: { balance: { increment: overflow } } }));
+      ops.push(prisma.transaction.create({ data: { userId: providerId, amount: overflow, kind: "OVERFLOW", threadId: thread.id, note: "Over cap to community pot" } }));
+    }
   }
   ops.push(prisma.thread.update({ where: { id: thread.id }, data: { status: "DONE", escrow: 0 } }));
   ops.push(prisma.message.create({ data: { threadId: thread.id, kind: "SYSTEM", text: "✅ Trade complete. You can now rate each other." } }));

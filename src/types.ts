@@ -36,6 +36,15 @@ export interface Notif {
   read: boolean;
 }
 
+export interface Gratitude {
+  id: string;
+  fromName: string;
+  toName: string;
+  cat: Cat;
+  text: string;
+  when: string;
+}
+
 export interface CharacterLook {
   species: number;   // index into SPECIES
   skin: number;      // index into SKINS (person) or FURS (animal)
@@ -82,7 +91,7 @@ export interface Activity {
 
 export type Stage = "auth" | "verify" | "create" | "app";
 export type Tab = "village" | "explore" | "post" | "pacts" | "chats";
-export type ExView = "list" | "map";
+export type ExView = "list" | "map" | "thanks";
 
 export type Sheet =
   | { kind: "item"; id: string }
@@ -92,4 +101,5 @@ export type Sheet =
   | { kind: "rating"; targetId: string; threadId: string }
   | { kind: "report"; id: string }
   | { kind: "notifications" }
+  | { kind: "gift" }
   | null;
