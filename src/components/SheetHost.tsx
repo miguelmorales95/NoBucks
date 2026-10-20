@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useStore, firstName } from "../store";
 import type { Listing, Sheet, ThreadRole, CharacterLook, Cat, EventItem } from "../types";
-import { CATS, CAT_KEYS } from "../data";
+import { CATS, CAT_KEYS, STICKERS } from "../data";
 import { Character, randomChar, cloneChar } from "../character";
 import { CharacterBuilder } from "./CharacterBuilder";
 import { Avatar, RateBadge, PhotoBanner } from "./listing";
@@ -33,6 +33,8 @@ function SheetBody({ sheet }: { sheet: NonNullable<Sheet> }) {
     case "gift": return <GiftSheet />;
     case "event": { const ev = state.events.find((e) => e.id === sheet.id); return ev ? <EventSheet ev={ev} /> : null; }
     case "createEvent": return <CreateEventSheet />;
+    case "sticker": return <StickerSheet toName={sheet.toName} />;
+    default: return null;
   }
 }
 
@@ -40,7 +42,7 @@ function ItemSheet({ item }: { item: Listing }) {
   const { actions } = useStore();
   const isMine = item.name === "You";
   const role: ThreadRole = item.type === "offer" ? "client" : item.type === "request" ? "provider" : "joiner";
-  const actLabel = item.type === "offer" ? "💬 Message to arrange" : item.type === "request" ? "💬 Offer to help" : "💬 Ask to join";
+  const actLabel = item.type === "offer" ? "💬 Message to arrange" : item.type === "request" ? "💬 Offer to help" : item.open ? "🙌 Request to join this pact" : "🤝 Ask to join";
   const dealLabel = item.cost === "barter" ? "Open to a trade" : item.cost === "pact" ? "Even swap — no sprouts" : item.type === "request" ? "You’d earn" : "Costs you";
   const dealVal = item.cost === "barter" ? "🔁" : item.cost === "pact" ? "♾️" : item.cost + " 🌱";
   const dist = item.dist ? (item.dist <= 1.2 ? item.dist + " mi · a short walk" : item.dist + " mi · a trek, but worth it") : "nearby";
@@ -55,6 +57,7 @@ function ItemSheet({ item }: { item: Listing }) {
         </div>
       </div>
       <div className="blurb">{item.blurb}</div>
+      {item.type === "pact" && <PactDetails item={item} />}
       {item.review && (
         <div className="review">
           <div style={{ fontSize: 22 }}>💬</div>
@@ -264,6 +267,47 @@ function CreateEventSheet() {
         }}>Post event</button>
         <button className="btn btn-ghost" onClick={actions.closeSheet}>Cancel</button>
       </div>
+    </>
+  );
+}
+
+const PACT_MAP = `<svg viewBox="0 0 400 240" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="400" height="240" fill="var(--map-land)"/><g fill="var(--map-block)"><rect x="18" y="16" width="110" height="60" rx="10"/><rect x="250" y="150" width="120" height="70" rx="10"/></g><g stroke="var(--map-road)" stroke-width="20" stroke-linecap="round"><line x1="-10" y1="92" x2="410" y2="92"/><line x1="-10" y1="168" x2="410" y2="168"/><line x1="150" y1="-10" x2="150" y2="250"/><line x1="280" y1="-10" x2="280" y2="250"/></g><rect x="300" y="100" width="110" height="80" rx="22" fill="var(--map-park)"/><g fill="var(--map-tree)"><circle cx="330" cy="140" r="12"/><circle cx="362" cy="130" r="10"/></g></svg>`;
+
+function PactDetails({ item }: { item: Listing }) {
+  const locs = item.locations ?? [];
+  return (
+    <>
+      {item.members && item.members.length > 0 && (
+        <div className="pactmembers">
+          <div className="pm-label">👥 {item.members.length} members{item.open ? " · open to join" : ""}</div>
+          <div className="pm-list">{item.members.map((m) => <span className="pm-chip" key={m}>{m}</span>)}</div>
+        </div>
+      )}
+      {locs.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div className="pm-label" style={{ marginBottom: 8 }}>📍 Where it happens</div>
+          <div className="pactmap">
+            <div style={{ position: "absolute", inset: 0 }} dangerouslySetInnerHTML={{ __html: PACT_MAP }} />
+            {locs.map((l, i) => (
+              <div className="ploc" key={i} style={{ left: l.mx + "%", top: l.my + "%" }}><span className="ploc-pin">📍</span><span className="ploc-lab">{l.label}</span></div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function StickerSheet({ toName }: { toName: string }) {
+  const { actions } = useStore();
+  return (
+    <>
+      <h2>Send a sticker to {firstName(toName)} ✨</h2>
+      <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 14px" }}>A little hello or thank-you — pick one to send to their village.</p>
+      <div className="stickerpick">
+        {STICKERS.map((e) => <button key={e} onClick={() => actions.sendSticker(toName, e)}>{e}</button>)}
+      </div>
+      <div className="actions"><button className="btn btn-ghost" onClick={actions.closeSheet}>Cancel</button></div>
     </>
   );
 }

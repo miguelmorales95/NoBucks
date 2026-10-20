@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useStore } from "../store";
 import { Character } from "../character";
+import type { CharacterLook, Villager, Weather } from "../types";
 
 const VILLAGE_BG = `
 <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -18,12 +19,40 @@ const VILLAGE_BG = `
 <path d="M150 300 Q210 220 210 180 Q210 220 290 300" fill="none" stroke="#e7dcc0" stroke-width="16" opacity=".7"/>
 </svg>`;
 
+function WeatherLayer({ weather }: { weather: Weather | null }) {
+  if (!weather) return null;
+  const n = weather.condition === "rain" ? 44 : weather.condition === "snow" ? 30 : 0;
+  const parts = Array.from({ length: n }, (_, i) => {
+    const left = Math.random() * 100;
+    const delay = Math.random() * 2;
+    const dur = weather.condition === "snow" ? 3 + Math.random() * 3 : 0.5 + Math.random() * 0.5;
+    const cls = weather.condition === "rain" ? "wx-drop" : "wx-flake";
+    return <span key={i} className={cls} style={{ left: left + "%", animationDelay: delay + "s", animationDuration: dur + "s" }}>{weather.condition === "snow" ? "❄" : ""}</span>;
+  });
+  return (
+    <div className={`wx wx-${weather.condition} season-${weather.season}`} aria-hidden="true">
+      {weather.condition === "clouds" && (
+        <>
+          <span className="wx-cloud" style={{ top: "12%" }}>☁️</span>
+          <span className="wx-cloud" style={{ top: "28%", animationDelay: "7s" }}>☁️</span>
+        </>
+      )}
+      {parts}
+    </div>
+  );
+}
+
 interface Walker { el: HTMLElement; x: number; y: number; tx: number; ty: number; sp: number; pause: number; flip: number; ph: number; }
 
-export function VillageScene() {
+export function VillageScene(
+  { villagers, playerChar, plateName }: { villagers?: Villager[]; playerChar?: CharacterLook; plateName?: string } = {}
+) {
   const { state, actions } = useStore();
   const sceneRef = useRef<HTMLDivElement>(null);
-  const villagers = state.village;
+  const vgs = villagers ?? state.village;
+  const pchar = playerChar ?? state.player.char;
+  const plate = plateName ?? `${state.player.name}'s village`;
+  const interactive = !villagers;
 
   useEffect(() => {
     const scene = sceneRef.current;
@@ -35,14 +64,12 @@ export function VillageScene() {
       return { el, x, y, tx: x, ty: y, sp: 2.2 + Math.random() * 2.2, pause: Math.random() * 2.5, flip: 1, ph: Math.random() * 6 };
     });
     const paint = (w: Walker, bob: number) => {
-      w.el.style.left = w.x + "%";
-      w.el.style.top = w.y + "%";
+      w.el.style.left = w.x + "%"; w.el.style.top = w.y + "%";
       w.el.style.transform = `translate(-50%,-100%) translateY(${-bob}px) scaleX(${w.flip})`;
       w.el.style.zIndex = String(Math.round(w.y));
     };
     W.forEach((w) => paint(w, 0));
     if (reduce) return;
-
     let last = 0, raf = 0;
     const tick = (ts: number) => {
       if (!last) last = ts;
@@ -62,23 +89,24 @@ export function VillageScene() {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [villagers.length]);
+  }, [vgs.length]);
 
   return (
     <div className="vscene" ref={sceneRef}>
       <div className="vbg" dangerouslySetInnerHTML={{ __html: VILLAGE_BG }} />
-      <div className="vplate">🍀 {state.player.name}’s village</div>
-      {villagers.map((v, i) => (
+      <WeatherLayer weather={state.weather} />
+      <div className="vplate">🍀 {plate}</div>
+      {vgs.map((v, i) => (
         <button key={v.name + i} className="walker" aria-label={v.name}
-          onClick={() => actions.openSheet({ kind: "villager", index: i })}>
+          onClick={interactive ? () => actions.openSheet({ kind: "villager", index: i }) : undefined}>
           <Character look={v.char} />
         </button>
       ))}
       <button className="walker" aria-label="You" style={{ cursor: "default" }}>
         <span className="crown">👑</span>
-        <Character look={state.player.char} />
+        <Character look={pchar} />
       </button>
-      <button className="addfab" onClick={() => actions.openSheet({ kind: "addVillager" })}>＋ Add villager</button>
+      {interactive && <button className="addfab" onClick={() => actions.openSheet({ kind: "addVillager" })}>＋ Add villager</button>}
     </div>
   );
 }

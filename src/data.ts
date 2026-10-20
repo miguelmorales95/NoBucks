@@ -41,6 +41,27 @@ export const DIST = { min: 0.5, max: 12, step: 0.5, default: 1.5 };
 export const SPROUT_CAP = 40;
 export const POT_SEED = 128;
 
+export const STICKERS = ["🌟", "🌻", "🍞", "🎉", "💛", "🌱", "🫶", "🐱", "🌈", "☕", "🍀", "✨"];
+
+export const SEED_GOALS = [
+  { id: "g-help", label: "Help 3 neighbors this month", icon: "🤝", target: 3, progress: 1 },
+  { id: "g-host", label: "Host or join an event", icon: "🎉", target: 1, progress: 0 },
+  { id: "g-give", label: "Add to the community pot", icon: "🫙", target: 1, progress: 0 },
+  { id: "g-offer", label: "Post something to share", icon: "🎁", target: 1, progress: 0 },
+];
+
+export const SEED_CIRCLES = [
+  { id: "c1", name: "Sunday Bakers", emoji: "🍞", members: ["You", "Maya", "Pilar"] },
+];
+
+export const SEED_STICKERS = [
+  { id: "s1", emoji: "🌻", from: "Grace" },
+  { id: "s2", emoji: "🍞", from: "Maya" },
+  { id: "s3", emoji: "💛", from: "Theo" },
+];
+
+export const CIRCLE_EMOJI = ["🍞", "🌻", "🎧", "🧰", "🎨", "🌱", "🏀", "📚", "🫶", "🌈"];
+
 export const SEED_REPORTS = [
   { id: "r1", reporterName: "Dana", targetName: "Sam", reason: "Didn't show up / unreliable", details: "No-show for the DJ set, no message.", status: "open" },
   { id: "r2", reporterName: "Ivy", targetName: "Marco", reason: "Safety concern", details: "", status: "open" },
@@ -96,8 +117,8 @@ const RAW_ITEMS: any[] = [
   { id: 12, type: "request", cat: "care", name: "Nico", dist: 0.4, mx: 40, my: 81, rating: 4.8, reviews: 16, title: "Need a hand moving a couch Saturday", blurb: "Quick 20-minute job, two flights of stairs. Pizza and cold drinks for whoever lends an arm.", cost: 2, unit: "job" },
   { id: 13, type: "request", cat: "food", name: "Ivy", dist: 0.8, mx: 60, my: 37, rating: 4.9, reviews: 11, title: "Have lemons 🍋 → want homemade jam", blurb: "My tree is overflowing. Take as many as you want; I'd love a few jars of jam or marmalade in return.", cost: "barter", unit: "" },
   { id: 14, type: "request", cat: "tech", name: "Beck", dist: 0.6, mx: 47, my: 60, rating: 4.7, reviews: 8, title: "Help building a simple one-page website", blurb: "For our block's little free pantry: hours, a map, a donation list. I can teach sourdough or babysit in trade.", cost: 3, unit: "project" },
-  { id: 15, type: "pact", cat: "garden", name: "Grace & Nina", dist: 0.5, mx: 35, my: 31, rating: 4.9, reviews: 14, title: "Plant-watering ↔ dog-walking", blurb: "A standing weekly swap: Nina waters Grace's garden when she travels, Grace walks Biscuit on Nina's long shifts. Open to a third for weekends.", review: "These two have kept my street's gardens and dogs happy for a year.", revBy: "Maya", cost: "pact", unit: "" },
-  { id: 16, type: "pact", cat: "teach", name: "Luz", dist: 0.9, mx: 70, my: 47, rating: 5.0, reviews: 20, title: "Spanish ↔ English practice circle", blurb: "Tuesdays & Thursdays, 7pm at the Echo Park library. Half Spanish, half English, all patient. Room for one or two more.", review: "My Spanish went from zero to ordering tacos confidently. Warm group.", revBy: "Dev", cost: "pact", unit: "" },
+  { id: 15, type: "pact", cat: "garden", name: "Grace & Nina", dist: 0.5, mx: 35, my: 31, rating: 4.9, reviews: 14, title: "Plant-watering ↔ dog-walking", blurb: "A standing weekly swap: Nina waters Grace's garden when she travels, Grace walks Biscuit on Nina's long shifts. Open to a third for weekends.", review: "These two have kept my street's gardens and dogs happy for a year.", revBy: "Maya", cost: "pact", unit: "", members: ["Grace", "Nina"], open: true, locations: [{ label: "Grace's garden", mx: 26, my: 44 }, { label: "Nina's place", mx: 42, my: 30 }] },
+  { id: 16, type: "pact", cat: "teach", name: "Luz", dist: 0.9, mx: 70, my: 47, rating: 5.0, reviews: 20, title: "Spanish ↔ English practice circle", blurb: "Tuesdays & Thursdays, 7pm at the Echo Park library. Half Spanish, half English, all patient. Room for one or two more.", review: "My Spanish went from zero to ordering tacos confidently. Warm group.", revBy: "Dev", cost: "pact", unit: "", members: ["Luz", "Dev", "Priya"], open: true, locations: [{ label: "Echo Park Library", mx: 70, my: 47 }, { label: "Luz's porch", mx: 60, my: 55 }] },
 ];
 
 const HOOD_BY_ID: Record<string, string> = {

@@ -26,6 +26,10 @@ export interface Listing {
   unit: string;
   neighborhood?: string; // the LA neighborhood this listing belongs to
   photo?: string; // optional image: a data URL (uploaded) or asset URL
+  // pact-only: multi-person pacts
+  members?: string[];
+  open?: boolean; // accepting join requests
+  locations?: { label: string; mx: number; my: number }[];
 }
 
 export interface Notif {
@@ -122,6 +126,17 @@ export interface AdminOverview {
   pot: number;
 }
 
+export interface Goal { id: string; label: string; icon: string; target: number; progress: number; }
+export interface Circle { id: string; name: string; emoji: string; members: string[]; }
+export interface VillageCard { id: string; name: string; char: CharacterLook; villageName: string; villagers: number; neighborhood?: string; flavor: string; }
+export interface Sticker { id: string; emoji: string; from: string; }
+export interface Weather {
+  season: "spring" | "summer" | "fall" | "winter";
+  condition: "clear" | "clouds" | "rain" | "snow";
+  label: string;
+}
+export type VillageView = "home" | "visit" | "peek" | "stickers" | "cards" | "circles";
+
 export type Stage = "auth" | "verify" | "create" | "app";
 export type Tab = "village" | "explore" | "post" | "pacts" | "chats";
 export type ExView = "list" | "map" | "thanks";
@@ -137,4 +152,6 @@ export type Sheet =
   | { kind: "gift" }
   | { kind: "event"; id: string }
   | { kind: "createEvent" }
+  | { kind: "sticker"; toName: string }
+  | { kind: "circle" }
   | null;

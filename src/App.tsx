@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useStore } from "./store";
+import type { Weather } from "./types";
 import { Header } from "./components/Header";
 import { BottomNav } from "./components/BottomNav";
 import { SheetHost } from "./components/SheetHost";
@@ -27,7 +28,34 @@ function TabScreen() {
 }
 
 export function App() {
-  const { state } = useStore();
+  const { state, actions } = useStore();
+
+  // Mirror the viewer's real season + weather into the village.
+  useEffect(() => {
+    const month = new Date().getMonth();
+    const season: Weather["season"] = month >= 2 && month <= 4 ? "spring" : month >= 5 && month <= 7 ? "summer" : month >= 8 && month <= 10 ? "fall" : "winter";
+    const cap = (x: string) => x[0].toUpperCase() + x.slice(1);
+    const condLabel = (c: string) => (c === "rain" ? "rainy" : c === "snow" ? "snowy" : c === "clouds" ? "cloudy" : "clear");
+    const fallback = () => actions.setWeather({ season, condition: "clear", label: `${cap(season)} · clear` });
+    if (!("geolocation" in navigator)) { fallback(); return; }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=weather_code,temperature_2m`);
+          const d = await r.json();
+          const code: number = d.current?.weather_code ?? 0;
+          const condition: Weather["condition"] =
+            code <= 1 ? "clear" : code <= 48 ? "clouds" : (code >= 71 && code <= 77) || code === 85 || code === 86 ? "snow" : "rain";
+          const t = Math.round(d.current?.temperature_2m);
+          actions.setWeather({ season, condition, label: `${cap(season)} · ${condLabel(condition)}${Number.isNaN(t) ? "" : ` · ${t}°`}` });
+        } catch { fallback(); }
+      },
+      () => fallback(),
+      { timeout: 8000 }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   let body: ReactNode;
   if (state.stage === "auth") body = <AuthScreen />;

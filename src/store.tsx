@@ -1,8 +1,10 @@
 import { createContext, useContext, useMemo, useReducer, useRef, type ReactNode } from "react";
 import type {
-  Activity, AdminOverview, AdminReport, CharacterLook, Cat, EventItem, ExView, Gratitude, Listing, Notif, Sheet, Stage, Tab, Thread, ThreadRole, Villager,
+  Activity, AdminOverview, AdminReport, Circle, CharacterLook, Cat, EventItem, ExView, Goal, Gratitude, Listing, Notif, Sheet, Stage, Sticker, Tab, Thread, ThreadRole, VillageCard, VillageView, Villager, Weather,
 } from "./types";
-import { CATS, DIST, REPLIES, SEED_ITEMS, HOME_HOOD, SPROUT_CAP, POT_SEED, SEED_GRATITUDES, SEED_EVENTS, SEED_REPORTS } from "./data";
+import { CATS, DIST, REPLIES, SEED_ITEMS, HOME_HOOD, SPROUT_CAP, POT_SEED, SEED_GRATITUDES, SEED_EVENTS, SEED_REPORTS, SEED_GOALS, SEED_CIRCLES, SEED_STICKERS, CIRCLE_EMOJI } from "./data";
+
+const EXPIRY_WEEKS = 6; // sprouts expire after this many idle weeks (anti-hoarding draft)
 import { charFor, cloneChar, randomChar } from "./character";
 import { api, setToken } from "./api";
 
@@ -26,6 +28,11 @@ interface State {
   communityPot: number; gratitudes: Gratitude[];
   events: EventItem[]; gatherView: "pacts" | "events";
   reports: AdminReport[]; adminOpen: boolean; adminOverview: AdminOverview | null;
+  weather: Weather | null;
+  givingStreak: number; goals: Goal[];
+  circles: Circle[]; stickers: Sticker[]; cards: VillageCard[];
+  villageView: VillageView; peekName: string | null;
+  sproutBatches: { amt: number; wk: number }[];
 }
 
 const firstName = (n: string) => n.split(/[ &]/)[0];
@@ -64,6 +71,17 @@ function initialState(): State {
     communityPot: POT_SEED, gratitudes: SEED_GRATITUDES as Gratitude[],
     events: SEED_EVENTS as EventItem[], gatherView: "pacts",
     reports: SEED_REPORTS as AdminReport[], adminOpen: false, adminOverview: null,
+    weather: null,
+    givingStreak: 3,
+    goals: SEED_GOALS.map((g) => ({ ...g })),
+    circles: SEED_CIRCLES.map((c) => ({ ...c, members: [...c.members] })),
+    stickers: SEED_STICKERS.slice(),
+    cards: [
+      { id: "card-maya", name: "Maya", char: charFor("Maya"), villageName: "Maya's Village", villagers: 19, neighborhood: "Echo Park", flavor: "Sourdough sorceress 🍞" },
+      { id: "card-theo", name: "Theo", char: charFor("Theo"), villageName: "Theo's Village", villagers: 24, neighborhood: "Silver Lake", flavor: "Fixes anything on wheels 🔧" },
+    ],
+    villageView: "home", peekName: null,
+    sproutBatches: [{ amt: 12, wk: 0 }],
   };
 }
 
@@ -93,6 +111,14 @@ export interface Actions {
   openAdmin(): void; closeAdmin(): void;
   resolveReport(id: string, status: "reviewed" | "actioned"): void;
   claimLeader(): void;
+  setVillageView(v: VillageView): void;
+  peek(name: string): void;
+  sendSticker(toName: string, emoji: string): void;
+  shareCard(toName: string): void;
+  createCircle(name: string): void;
+  joinCircle(id: string): void;
+  inviteToCircle(id: string, name: string): void;
+  setWeather(w: Weather): void;
 }
 
 interface Store { state: State; actions: Actions; }
@@ -148,6 +174,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (s.village.some((v) => v.name === name)) return;
       s.village.push({ name, cat, char: charFor(name + kind), kind, note });
     };
+    const syncBalance = () => { s.balance = s.sproutBatches.reduce((a, b) => a + b.amt, 0); };
+    const credit = (n: number) => { if (n > 0) { s.sproutBatches.push({ amt: n, wk: 0 }); syncBalance(); } };
+    const debit = (n: number) => {
+      let need = n;
+      for (const b of s.sproutBatches) { if (need <= 0) break; const take = Math.min(b.amt, need); b.amt -= take; need -= take; }
+      s.sproutBatches = s.sproutBatches.filter((b) => b.amt > 0); syncBalance();
+    };
+    const bumpGoal = (id: string) => {
+      const g = s.goals.find((x) => x.id === id);
+      if (!g || g.progress >= g.target) return;
+      g.progress++;
+      if (g.progress >= g.target) { s.stickers.unshift({ id: uid(), emoji: "🏅", from: "Clover goals" }); toast(`Goal complete: ${g.label} 🏅`); }
+    };
     const fireBrowser = (title: string, body: string) => {
       try { if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") new Notification(title, { body }); } catch { /* ignore */ }
     };
@@ -193,7 +232,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const refreshVillage = async () => { const r = await api.village(); s.village = (r.villagers as any[]).map(mapVillager); bump(); };
 
     return {
-      setTab(t) { s.tab = t; s.adminOpen = false; if (t !== "explore") s.selectedPin = null; if (t === "chats") s.chatOpen = null; bump(); },
+      setTab(t) { s.tab = t; s.adminOpen = false; s.villageView = "home"; s.peekName = null; if (t !== "explore") s.selectedPin = null; if (t === "chats") s.chatOpen = null; bump(); },
       setExView(v) { s.exView = v; s.selectedPin = null; bump(); },
       setMaxDist(mi) { s.maxDist = mi; bump(); },
       setQuery(q) { s.query = q; bump(); },
@@ -261,7 +300,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           id: uid(), type: d.type, cat: d.cat, name: "You", dist: 0, mx: 48 + Math.random() * 8, my: 52 + Math.random() * 8,
           rating: 5, reviews: 0, title: d.title, blurb: d.blurb || "(No details yet)", cost: d.cost, unit: d.type === "offer" ? "hour" : "", photo: d.photo,
         });
-        s.filter = "all"; toast("Posted to the neighborhood! 🎉");
+        s.filter = "all"; if (d.type === "offer") bumpGoal("g-offer"); toast("Posted to the neighborhood! 🎉");
         s.tab = d.type === "pact" ? "pacts" : "explore"; if (d.type !== "pact") s.exView = "list"; bump();
       },
 
@@ -319,7 +358,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         const cost = typeof item.cost === "number" ? item.cost : 0;
         if (cost > s.balance) return;
-        s.balance -= cost;
+        debit(cost);
         if (cost > 0) s.activity.unshift({ ic: CATS[item.cat].e, cat: item.cat, t: `Reserved: ${item.title} · ${item.name}`, s: "Just now", amt: -cost });
         addVillager(item.name, item.cat, "You got: " + item.title, "app");
         const t = s.threads.find((th) => th.itemId === item.id);
@@ -344,7 +383,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const room = Math.max(0, SPROUT_CAP - s.balance);
           const gained = Math.min(reward, room);
           const overflow = reward - gained;
-          s.balance += gained; if (overflow > 0) s.communityPot += overflow;
+          credit(gained); if (overflow > 0) s.communityPot += overflow;
+          bumpGoal("g-help");
           if (gained > 0 && item) s.activity.unshift({ ic: CATS[item.cat].e, cat: item.cat, t: `Earned: ${item.title} · ${item.name}`, s: "Just now", amt: gained });
           t.status = "done";
           t.msgs.push({ from: "sys", text: gained > 0 ? `✅ Complete! You earned ${gained} 🌱.${overflow > 0 ? ` ${overflow} over your cap flowed to the community pot 🫙.` : ""} ${firstName(t.name)} rated you ⭐` : "✅ Complete! Thanks for helping." });
@@ -394,24 +434,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       gift(amount) {
         const amt = Math.min(amount, s.balance);
         if (amt <= 0) return;
-        s.balance -= amt; s.communityPot += amt;
+        debit(amt); s.communityPot += amt;
         s.activity.unshift({ ic: "🫙", cat: "garden", t: "Gift to the community pot", s: "Just now", amt: -amt });
+        bumpGoal("g-give");
         s.sheet = null; toast(`You gave ${amt} 🌱 to the pot 💛`);
         if (API) api.gift(amt).catch(fail);
         bump();
       },
       demurrageWeek() {
-        const idle = Math.max(0, s.balance - 10);
-        const decay = Math.floor(idle * 0.1);
-        if (decay <= 0) { toast("Nothing idle to recirculate — nicely spent! 🌿"); return; }
-        s.balance -= decay; s.communityPot += decay;
-        s.activity.unshift({ ic: "🍃", cat: "garden", t: "Weekly demurrage → community pot", s: "Just now", amt: -decay });
-        toast(`A week passed: ${decay} idle 🌱 returned to the pot.`); bump();
+        s.sproutBatches.forEach((b) => b.wk++);
+        const expired = s.sproutBatches.filter((b) => b.wk >= EXPIRY_WEEKS).reduce((a, b) => a + b.amt, 0);
+        s.sproutBatches = s.sproutBatches.filter((b) => b.wk < EXPIRY_WEEKS);
+        syncBalance();
+        if (expired > 0) { s.communityPot += expired; s.activity.unshift({ ic: "🍃", cat: "garden", t: `${expired} sprouts expired → community pot`, s: "Just now", amt: -expired }); }
+        toast(expired > 0 ? `A week passed: ${expired} old 🌱 expired into the pot.` : "A week passed — nothing expired. Nicely spent! 🌿");
+        bump();
       },
       drawFromPot() {
         const amt = Math.min(5, s.communityPot);
         if (amt <= 0) { toast("The pot is empty right now."); return; }
-        s.communityPot -= amt; s.balance += amt;
+        s.communityPot -= amt; credit(amt);
         s.activity.unshift({ ic: "🫙", cat: "garden", t: "Top-up from the community pot", s: "Just now", amt: amt });
         toast(`You drew ${amt} 🌱 from the pot. Pay it forward 🌱`); bump();
       },
@@ -424,6 +466,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       rsvp(eventId) {
         const ev = s.events.find((e) => e.id === eventId); if (!ev) return;
         ev.rsvped = !ev.rsvped; ev.going += ev.rsvped ? 1 : -1;
+        if (ev.rsvped) bumpGoal("g-host");
         toast(ev.rsvped ? `You're going to “${ev.title}” 🎉` : "RSVP cancelled");
         if (API) api.rsvp(eventId).catch(fail);
         bump();
@@ -441,6 +484,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         s.events.unshift({ id: uid(), host: s.player.name, cat: d.cat, neighborhood: s.player.neighborhood, title: d.title,
           blurb: d.blurb || "(No details yet)", when: d.when, place: d.place, capacity: d.capacity, going: 1, rsvped: true });
+        bumpGoal("g-host");
         s.sheet = null; s.tab = "pacts"; s.gatherView = "events"; toast("Event posted! 🎉"); bump();
       },
       openAdmin() {
@@ -471,6 +515,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         s.player.role = "leader"; toast("You're a community leader 🛡️"); bump();
       },
+      setVillageView(v) { s.villageView = v; if (v !== "peek") s.peekName = null; bump(); },
+      peek(name) { s.peekName = name; s.villageView = "peek"; bump(); },
+      sendSticker(toName, emoji) {
+        s.sheet = null;
+        toast(`You sent ${emoji} to ${firstName(toName)}!`);
+        window.setTimeout(() => {
+          const back = ["🌻", "💛", "✨", "🍀", "🫶"][Math.floor(Math.random() * 5)];
+          s.stickers.unshift({ id: uid(), emoji: back, from: firstName(toName) });
+          notify("✨", `${firstName(toName)} sent you a sticker`, "Open your sticker binder to see it.");
+        }, 900);
+        bump();
+      },
+      shareCard(toName) {
+        if (!s.cards.some((c) => c.name === toName)) {
+          s.cards.unshift({ id: uid(), name: toName, char: charFor(toName), villageName: `${firstName(toName)}'s Village`, villagers: 12 + (hash(toName) % 20), neighborhood: s.player.neighborhood, flavor: "A good neighbor 🌱" });
+        }
+        toast(`You swapped village cards with ${firstName(toName)} 🃏`);
+        bump();
+      },
+      createCircle(name) {
+        const nm = name.trim(); if (!nm) { toast("Give your circle a name"); return; }
+        s.circles.unshift({ id: uid(), name: nm, emoji: CIRCLE_EMOJI[Math.floor(Math.random() * CIRCLE_EMOJI.length)], members: ["You"] });
+        s.sheet = null; toast(`Created “${nm}” ⭕`); bump();
+      },
+      joinCircle(id) { const c = s.circles.find((x) => x.id === id); if (c && !c.members.includes("You")) c.members.push("You"); toast("You joined the circle 🤝"); bump(); },
+      inviteToCircle(id, name) { const c = s.circles.find((x) => x.id === id); if (c && !c.members.includes(name)) c.members.push(name); toast(`Invited ${firstName(name)} ✉️`); bump(); },
+      setWeather(w) { s.weather = w; bump(); },
     };
   }, [s]);
 

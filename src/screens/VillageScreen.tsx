@@ -2,32 +2,61 @@ import { useStore } from "../store";
 import { VillageScene } from "../components/VillageScene";
 import { ListingCard } from "../components/listing";
 import { CATS, SPROUT_CAP } from "../data";
+import { VisitView, PeekView, StickerBinder, CardBinder, GivingCard } from "./VillageExtras";
 
 export function VillageScreen() {
+  const { state } = useStore();
+  switch (state.villageView) {
+    case "visit": return <VisitView />;
+    case "peek": return <PeekView />;
+    case "stickers": return <StickerBinder />;
+    case "cards": return <CardBinder />;
+    default: return <VillageHome />;
+  }
+}
+
+const wxIcon = (c: string) => (c === "rain" ? "🌧️" : c === "snow" ? "🌨️" : c === "clouds" ? "☁️" : "☀️");
+
+function VillageHome() {
   const { state, actions } = useStore();
   const appCount = state.village.filter((v) => v.kind === "app").length;
   const offCount = state.village.filter((v) => v.kind === "off").length;
   const mine = state.items.filter((i) => i.name === "You");
+  const expiringSoon = state.sproutBatches.filter((b) => b.wk >= 4).reduce((a, b) => a + b.amt, 0);
 
   return (
     <>
+      {state.weather && <div className="wxchip">{wxIcon(state.weather.condition)} {state.weather.label}</div>}
       <VillageScene />
       <div className="vmeta">
         <div className="vm"><div className="num">{state.village.length}</div><div className="lab">Villagers</div></div>
         <div className="vm"><div className="num">{state.balance} 🌱</div><div className="lab">Sprouts</div></div>
         <div className="vm"><div className="num">⭐ 4.9</div><div className="lab">Your rating</div></div>
       </div>
-      <div className="screen-sub" style={{ margin: "10px 2px 2px" }}>
-        Everyone you trade with moves in and wanders around. Tap a villager to see who they are. {appCount} from Clover, {offCount} added by you.
+
+      <div className="social-row">
+        <button onClick={() => actions.setVillageView("visit")}>🏘️<span>Visit</span></button>
+        <button onClick={() => actions.setVillageView("stickers")}>✨<span>Stickers</span></button>
+        <button onClick={() => actions.setVillageView("cards")}>🃏<span>Cards</span></button>
       </div>
+
+      <div className="screen-sub" style={{ margin: "12px 2px 0" }}>
+        Everyone you trade with moves in and wanders around. {appCount} from Clover, {offCount} added by you.
+      </div>
+
+      <div className="section-h">🎯 Your giving</div>
+      <GivingCard />
+
       <div className="balance" style={{ marginTop: 18 }}>
         <div className="k">YOUR SPROUTS</div>
         <div className="big">{state.balance} <small>/ {SPROUT_CAP} 🌱</small></div>
         <div className="capbar"><span style={{ width: Math.min(100, (state.balance / SPROUT_CAP) * 100) + "%" }} /></div>
         <div className="note">
-          {state.balance >= SPROUT_CAP - 5
-            ? "Near your cap — spend or gift so sprouts keep moving. Earnings over the cap flow to the pot."
-            : "Earn by helping, spend on what you need. One sprout ≈ one hour."}
+          {expiringSoon > 0
+            ? `${expiringSoon} 🌱 expiring soon — spend or gift them before they return to the pot.`
+            : state.balance >= SPROUT_CAP - 5
+            ? "Near your cap — gift some so sprouts keep moving."
+            : "Earn by helping, spend on what you need. Sprouts expire if idle too long."}
         </div>
       </div>
       <div className="pot">
@@ -40,12 +69,13 @@ export function VillageScreen() {
           {state.balance < 5 && <button className="btn btn-ghost" onClick={actions.drawFromPot}>Draw a little</button>}
         </div>
       </div>
-      <button className="btn btn-ghost" style={{ marginTop: 10 }} onClick={actions.demurrageWeek}>⏳ Let a week pass (demo: idle sprouts recirculate)</button>
+      <button className="btn btn-ghost" style={{ marginTop: 10 }} onClick={actions.demurrageWeek}>⏳ Let a week pass (sprouts age &amp; expire)</button>
       {state.player.role === "leader" ? (
         <button className="btn btn-teal" style={{ marginTop: 10 }} onClick={actions.openAdmin}>🛡️ Community tools</button>
       ) : (
         <button className="btn btn-ghost" style={{ marginTop: 10 }} onClick={actions.claimLeader}>Become a community leader (demo)</button>
       )}
+
       <div className="section-h">🌱 Sprout activity</div>
       <div className="ledger">
         {state.activity.map((a, i) => (
@@ -56,6 +86,7 @@ export function VillageScreen() {
           </div>
         ))}
       </div>
+
       <div className="section-h">📌 Your posts</div>
       {mine.length ? (
         <div className="feed">{mine.map((it) => <ListingCard key={it.id} item={it} onOpen={(i) => actions.openSheet({ kind: "item", id: i.id })} />)}</div>
