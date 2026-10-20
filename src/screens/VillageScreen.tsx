@@ -41,6 +41,11 @@ export function VillageScreen() {
         </div>
       </div>
       <button className="btn btn-ghost" style={{ marginTop: 10 }} onClick={actions.demurrageWeek}>⏳ Let a week pass (demo: idle sprouts recirculate)</button>
+      {state.player.role === "leader" ? (
+        <button className="btn btn-teal" style={{ marginTop: 10 }} onClick={actions.openAdmin}>🛡️ Community tools</button>
+      ) : (
+        <button className="btn btn-ghost" style={{ marginTop: 10 }} onClick={actions.claimLeader}>Become a community leader (demo)</button>
+      )}
       <div className="section-h">🌱 Sprout activity</div>
       <div className="ledger">
         {state.activity.map((a, i) => (

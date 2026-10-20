@@ -95,6 +95,13 @@ export const api = {
     request<{ event: unknown }>("/events", { method: "POST", body: JSON.stringify(b) }),
   rsvp: (id: string) => request<{ ok: true; going: number; rsvped: boolean }>(`/events/${id}/rsvp`, { method: "POST" }),
 
+  // admin / community-leader tools
+  claimLeader: () => request<{ role: string }>("/admin/claim", { method: "POST" }),
+  adminOverview: () => request<{ neighborhood?: string; members: number; listings: number; events: number; openReports: number; pot: number }>("/admin/overview"),
+  adminReports: () => request<{ reports: any[] }>("/admin/reports"),
+  resolveReport: (id: string, status: "REVIEWED" | "ACTIONED") =>
+    request<{ ok: true }>(`/admin/reports/${id}/resolve`, { method: "POST", body: JSON.stringify({ status }) }),
+
   // notifications
   notifications: () => request<{ notifications: unknown[] }>("/notifications"),
   markRead: () => request<{ ok: true }>("/notifications/read", { method: "POST" }),

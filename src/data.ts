@@ -41,6 +41,11 @@ export const DIST = { min: 0.5, max: 12, step: 0.5, default: 1.5 };
 export const SPROUT_CAP = 40;
 export const POT_SEED = 128;
 
+export const SEED_REPORTS = [
+  { id: "r1", reporterName: "Dana", targetName: "Sam", reason: "Didn't show up / unreliable", details: "No-show for the DJ set, no message.", status: "open" },
+  { id: "r2", reporterName: "Ivy", targetName: "Marco", reason: "Safety concern", details: "", status: "open" },
+];
+
 export const SEED_EVENTS = [
   { id: "e1", host: "Grace", cat: "garden", neighborhood: "Echo Park", title: "Spring seed swap in the park", blurb: "Bring seeds, seedlings, or just yourself. We'll trade and plan summer gardens together.", when: "Sat 10am", place: "Echo Park Lake lawn", capacity: 20, going: 8, rsvped: false },
   { id: "e2", host: "Theo", cat: "repair", neighborhood: "Silver Lake", title: "Repair café — bring broken things", blurb: "Bikes, lamps, small appliances. A few of us fix things together; learn as we go.", when: "Sun 1pm", place: "Sunset Triangle Plaza", capacity: 12, going: 5, rsvped: false },

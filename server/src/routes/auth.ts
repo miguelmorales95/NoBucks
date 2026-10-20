@@ -10,11 +10,12 @@ const DEFAULT_LOOK = { species: 0, skin: 1, haircolor: 1, hair: 0, shirt: 1, acc
 
 function publicUser(u: {
   id: string; email: string; name: string; balance: number; rating: number;
-  reviews: number; verified: boolean; charLook: unknown; neighborhood: string | null;
+  reviews: number; verified: boolean; charLook: unknown; neighborhood: string | null; role?: string;
 }) {
   return {
     id: u.id, email: u.email, name: u.name, balance: u.balance, rating: u.rating,
     reviews: u.reviews, verified: u.verified, char: u.charLook, neighborhood: u.neighborhood,
+    role: (u.role ?? "MEMBER").toLowerCase(),
   };
 }
 

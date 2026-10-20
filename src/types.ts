@@ -104,6 +104,24 @@ export interface Activity {
   amt: number;
 }
 
+export interface AdminReport {
+  id: string;
+  reporterName: string;
+  targetName: string;
+  reason: string;
+  details?: string;
+  status: string;
+}
+
+export interface AdminOverview {
+  neighborhood?: string;
+  members: number;
+  listings: number;
+  events: number;
+  openReports: number;
+  pot: number;
+}
+
 export type Stage = "auth" | "verify" | "create" | "app";
 export type Tab = "village" | "explore" | "post" | "pacts" | "chats";
 export type ExView = "list" | "map" | "thanks";

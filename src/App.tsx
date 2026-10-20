@@ -12,9 +12,11 @@ import { ExploreScreen } from "./screens/ExploreScreen";
 import { PostScreen } from "./screens/PostScreen";
 import { PactsScreen } from "./screens/PactsScreen";
 import { ChatsScreen } from "./screens/ChatsScreen";
+import { AdminScreen } from "./screens/AdminScreen";
 
 function TabScreen() {
   const { state } = useStore();
+  if (state.adminOpen) return <AdminScreen />;
   switch (state.tab) {
     case "village": return <VillageScreen />;
     case "explore": return <ExploreScreen />;

@@ -1,8 +1,8 @@
 import { createContext, useContext, useMemo, useReducer, useRef, type ReactNode } from "react";
 import type {
-  Activity, CharacterLook, Cat, EventItem, ExView, Gratitude, Listing, Notif, Sheet, Stage, Tab, Thread, ThreadRole, Villager,
+  Activity, AdminOverview, AdminReport, CharacterLook, Cat, EventItem, ExView, Gratitude, Listing, Notif, Sheet, Stage, Tab, Thread, ThreadRole, Villager,
 } from "./types";
-import { CATS, DIST, REPLIES, SEED_ITEMS, HOME_HOOD, SPROUT_CAP, POT_SEED, SEED_GRATITUDES, SEED_EVENTS } from "./data";
+import { CATS, DIST, REPLIES, SEED_ITEMS, HOME_HOOD, SPROUT_CAP, POT_SEED, SEED_GRATITUDES, SEED_EVENTS, SEED_REPORTS } from "./data";
 import { charFor, cloneChar, randomChar } from "./character";
 import { api, setToken } from "./api";
 
@@ -19,12 +19,13 @@ interface State {
   sheet: Sheet; toastMsg: string; toastKey: number;
   apiMode: boolean; meId: string | null;
   balance: number;
-  player: { name: string; char: CharacterLook; neighborhood: string };
+  player: { name: string; char: CharacterLook; neighborhood: string; role: "member" | "leader" };
   draft: CharacterLook;
   items: Listing[]; village: Villager[]; threads: Thread[]; activity: Activity[];
   notifications: Notif[]; blocked: string[];
   communityPot: number; gratitudes: Gratitude[];
   events: EventItem[]; gatherView: "pacts" | "events";
+  reports: AdminReport[]; adminOpen: boolean; adminOverview: AdminOverview | null;
 }
 
 const firstName = (n: string) => n.split(/[ &]/)[0];
@@ -36,7 +37,7 @@ function initialState(): State {
     hoodScope: "mine",
     filter: "all", selectedPin: null, chatOpen: null, sheet: null, toastMsg: "", toastKey: 0,
     apiMode: API, meId: null, balance: 12,
-    player: { name: "Jordan", char: { ...DEFAULT_LOOK }, neighborhood: HOME_HOOD },
+    player: { name: "Jordan", char: { ...DEFAULT_LOOK }, neighborhood: HOME_HOOD, role: "leader" },
     draft: { ...DEFAULT_LOOK },
     items: SEED_ITEMS.slice(),
     village: [
@@ -62,6 +63,7 @@ function initialState(): State {
     blocked: [],
     communityPot: POT_SEED, gratitudes: SEED_GRATITUDES as Gratitude[],
     events: SEED_EVENTS as EventItem[], gatherView: "pacts",
+    reports: SEED_REPORTS as AdminReport[], adminOpen: false, adminOverview: null,
   };
 }
 
@@ -88,6 +90,9 @@ export interface Actions {
   setGatherView(v: "pacts" | "events"): void;
   rsvp(eventId: string): void;
   createEvent(d: { title: string; cat: Cat; when: string; place: string; capacity: number; blurb: string }): void;
+  openAdmin(): void; closeAdmin(): void;
+  resolveReport(id: string, status: "reviewed" | "actioned"): void;
+  claimLeader(): void;
 }
 
 interface Store { state: State; actions: Actions; }
@@ -166,7 +171,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ]);
       const u = user as any;
       s.meId = u.id; s.balance = u.balance ?? 0;
-      s.player = { name: u.name, char: (u.char as CharacterLook) ?? { ...DEFAULT_LOOK }, neighborhood: u.neighborhood ?? HOME_HOOD };
+      s.player = { name: u.name, char: (u.char as CharacterLook) ?? { ...DEFAULT_LOOK }, neighborhood: u.neighborhood ?? HOME_HOOD, role: ((u.role as string) ?? "member") as "member" | "leader" };
       s.items = (feed.listings as any[]).map(mapListing);
       s.threads = (th.threads as any[]).map((t) => mapThread(t, u.id));
       s.village = (vil.villagers as any[]).map(mapVillager);
@@ -188,7 +193,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const refreshVillage = async () => { const r = await api.village(); s.village = (r.villagers as any[]).map(mapVillager); bump(); };
 
     return {
-      setTab(t) { s.tab = t; if (t !== "explore") s.selectedPin = null; if (t === "chats") s.chatOpen = null; bump(); },
+      setTab(t) { s.tab = t; s.adminOpen = false; if (t !== "explore") s.selectedPin = null; if (t === "chats") s.chatOpen = null; bump(); },
       setExView(v) { s.exView = v; s.selectedPin = null; bump(); },
       setMaxDist(mi) { s.maxDist = mi; bump(); },
       setQuery(q) { s.query = q; bump(); },
@@ -207,7 +212,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           try {
             if (b.mode === "register") {
               const r = await api.register({ email: b.email, name: b.name, password: b.password, char: s.player.char as any });
-              setToken(r.token); s.meId = (r.user as any).id; s.player = { name: (r.user as any).name, char: s.player.char, neighborhood: (r.user as any).neighborhood ?? HOME_HOOD };
+              setToken(r.token); s.meId = (r.user as any).id; s.player = { name: (r.user as any).name, char: s.player.char, neighborhood: (r.user as any).neighborhood ?? HOME_HOOD, role: ((r.user as any).role ?? "member") };
               s.stage = "verify"; bump();
             } else {
               const r = await api.login({ email: b.email, password: b.password });
@@ -226,8 +231,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       finishCreate(name) {
         const look = cloneChar(s.draft); const nm = name.trim() || "You";
         if (API) {
-          (async () => { try { await bootstrap(); } catch (e) { fail(e); } s.player = { name: nm, char: look, neighborhood: s.player.neighborhood }; s.stage = "app"; s.tab = "village"; bump(); })();
-        } else { s.player = { name: nm, char: look, neighborhood: s.player.neighborhood }; s.stage = "app"; s.tab = "village"; toast("Welcome to Echo Park 🍀"); }
+          (async () => { try { await bootstrap(); } catch (e) { fail(e); } s.player = { name: nm, char: look, neighborhood: s.player.neighborhood, role: s.player.role }; s.stage = "app"; s.tab = "village"; bump(); })();
+        } else { s.player = { name: nm, char: look, neighborhood: s.player.neighborhood, role: s.player.role }; s.stage = "app"; s.tab = "village"; toast("Welcome to Echo Park 🍀"); }
       },
 
       openSheet(sheet) { s.sheet = sheet; bump(); },
@@ -373,6 +378,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       report(item, reason) {
         if (API && item.authorId) api.report({ targetId: item.authorId, listingId: item.id, reason }).catch(fail);
+        else s.reports.unshift({ id: uid(), reporterName: s.player.name, targetName: item.name, reason, status: "open" });
         s.sheet = null; toast(`Thanks — we'll review this report about ${firstName(item.name)}.`);
       },
 
@@ -436,6 +442,34 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         s.events.unshift({ id: uid(), host: s.player.name, cat: d.cat, neighborhood: s.player.neighborhood, title: d.title,
           blurb: d.blurb || "(No details yet)", when: d.when, place: d.place, capacity: d.capacity, going: 1, rsvped: true });
         s.sheet = null; s.tab = "pacts"; s.gatherView = "events"; toast("Event posted! 🎉"); bump();
+      },
+      openAdmin() {
+        s.adminOpen = true;
+        if (API) {
+          (async () => {
+            try {
+              const [ov, rep] = await Promise.all([api.adminOverview(), api.adminReports()]);
+              s.adminOverview = ov as AdminOverview;
+              s.reports = (rep.reports as any[]).map((r) => ({ id: String(r.id), reporterName: r.reporterName, targetName: r.targetName, reason: r.reason, details: r.details, status: r.status }));
+            } catch (e) { fail(e); }
+            bump();
+          })();
+        }
+        bump();
+      },
+      closeAdmin() { s.adminOpen = false; bump(); },
+      resolveReport(id, status) {
+        s.reports = s.reports.filter((r) => r.id !== id);
+        toast(status === "actioned" ? "Report actioned ✓" : "Marked reviewed ✓");
+        if (API) api.resolveReport(id, status === "actioned" ? "ACTIONED" : "REVIEWED").catch(fail);
+        bump();
+      },
+      claimLeader() {
+        if (API) {
+          (async () => { try { await api.claimLeader(); } catch (e) { fail(e); } s.player.role = "leader"; toast("You're a community leader 🛡️"); bump(); })();
+          return;
+        }
+        s.player.role = "leader"; toast("You're a community leader 🛡️"); bump();
       },
     };
   }, [s]);

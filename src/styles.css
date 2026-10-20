@@ -348,4 +348,13 @@ input[type="range"].slider:focus-visible{outline:3px solid rgba(44,163,151,.4)}
 .sharerow{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:14px;cursor:pointer;font-weight:700;font-size:14px;color:var(--ink)}
 .sharerow input{width:20px;height:20px;accent-color:var(--teal);flex:none}
 
+/* admin / reports */
+.repcard{background:var(--surface);border:1.5px solid var(--line);border-left:5px solid var(--accent);border-radius:var(--r-md);padding:13px 14px;box-shadow:var(--shadow-soft)}
+.rephead{font-size:13px;color:var(--muted);font-weight:700;margin-bottom:4px}
+.rephead b{color:var(--ink);font-family:var(--font-display);font-weight:600}
+.repreason{font-family:var(--font-display);font-weight:600;font-size:15px}
+.repdetails{font-size:13px;color:var(--muted);font-style:italic;margin-top:4px}
+.repactions{display:flex;gap:8px;margin-top:11px}
+.repactions .btn{width:auto;flex:1;padding:10px;font-size:14px}
+
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
