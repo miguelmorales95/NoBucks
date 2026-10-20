@@ -335,6 +335,15 @@ input[type="range"].slider:focus-visible{outline:3px solid rgba(44,163,151,.4)}
 .gwhen{color:var(--muted);font-weight:700}
 .gtext{font-size:14px;color:var(--ink);line-height:1.5;margin-top:4px;font-style:italic}
 
+/* events */
+.tag.evt{background:rgba(240,178,62,.18);color:#9a7417}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .tag.evt{color:var(--gold)}}
+:root[data-theme="dark"] .tag.evt{color:var(--gold)}
+.evmeta{display:flex;gap:10px;margin-bottom:14px}
+.evmeta>div{flex:1;background:var(--surface-2);border-radius:14px;padding:11px 12px;min-width:0}
+.evmeta b{font-size:11px;color:var(--muted);font-weight:800;display:block;text-transform:uppercase;letter-spacing:.03em}
+.evmeta span{font-family:var(--font-display);font-weight:600;font-size:14px;display:block;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 /* share-a-thanks toggle */
 .sharerow{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:14px;cursor:pointer;font-weight:700;font-size:14px;color:var(--ink)}
 .sharerow input{width:20px;height:20px;accent-color:var(--teal);flex:none}

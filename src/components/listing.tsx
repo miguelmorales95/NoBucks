@@ -1,4 +1,4 @@
-import type { Cat, Listing } from "../types";
+import type { Cat, EventItem, Listing } from "../types";
 import { CATS } from "../data";
 
 export function initials(name: string): string {
@@ -48,6 +48,30 @@ export function priceText(item: Listing): string {
   if (item.cost === "barter") return "Barter";
   if (item.cost === "pact") return "Weekly pact";
   return `${item.cost} 🌱`;
+}
+
+export function EventCard({ ev, onOpen }: { ev: EventItem; onOpen: (ev: EventItem) => void }) {
+  return (
+    <article className="card" onClick={() => onOpen(ev)}>
+      <PhotoBanner item={{ photo: ev.photo, cat: ev.cat, title: ev.title } as Listing} />
+      <div className="row">
+        <Avatar name={ev.host} cat={ev.cat} />
+        <div className="body">
+          <div className="meta">
+            <span>{ev.host}</span><span className="dot" />
+            {ev.neighborhood && <><span>🏘️ {ev.neighborhood}</span><span className="dot" /></>}
+            <span>🗓️ {ev.when}</span>
+          </div>
+          <h3>{ev.title}</h3>
+          <p>📍 {ev.place} · {ev.blurb}</p>
+        </div>
+      </div>
+      <div className="foot">
+        <span className="tag evt">🎉 Event</span>
+        <span className="price">{ev.going}/{ev.capacity} <small>going</small></span>
+      </div>
+    </article>
+  );
 }
 
 export function ListingCard({ item, onOpen }: { item: Listing; onOpen: (item: Listing) => void }) {

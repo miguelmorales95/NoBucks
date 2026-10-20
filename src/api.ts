@@ -89,6 +89,12 @@ export const api = {
   addGratitude: (b: { toName: string; category: string; text: string }) =>
     request<{ gratitude: unknown }>("/gratitudes", { method: "POST", body: JSON.stringify(b) }),
 
+  // events
+  events: () => request<{ events: unknown[] }>("/events"),
+  createEvent: (b: { title: string; category: string; when: string; place: string; capacity: number; blurb: string }) =>
+    request<{ event: unknown }>("/events", { method: "POST", body: JSON.stringify(b) }),
+  rsvp: (id: string) => request<{ ok: true; going: number; rsvped: boolean }>(`/events/${id}/rsvp`, { method: "POST" }),
+
   // notifications
   notifications: () => request<{ notifications: unknown[] }>("/notifications"),
   markRead: () => request<{ ok: true }>("/notifications/read", { method: "POST" }),

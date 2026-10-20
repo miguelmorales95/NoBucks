@@ -26,7 +26,16 @@ async function main() {
     skipDuplicates: true,
   });
 
-  console.log("Seeded demo neighbors and listings.");
+  if ((await prisma.event.count()) === 0) {
+    await prisma.event.createMany({
+      data: [
+        { hostId: maya.id, hostName: "Maya", category: "GARDEN", neighborhood: "Echo Park", title: "Spring seed swap in the park", blurb: "Bring seeds or seedlings and plan summer gardens.", whenText: "Sat 10am", place: "Echo Park Lake lawn", capacity: 20 },
+        { hostId: theo.id, hostName: "Theo", category: "REPAIR", neighborhood: "Silver Lake", title: "Repair café — bring broken things", blurb: "Bikes, lamps, small appliances. Fix things together.", whenText: "Sun 1pm", place: "Sunset Triangle Plaza", capacity: 12 },
+      ],
+    });
+  }
+
+  console.log("Seeded demo neighbors, listings, and events.");
 }
 
 main()

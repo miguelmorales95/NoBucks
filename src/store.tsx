@@ -1,8 +1,8 @@
 import { createContext, useContext, useMemo, useReducer, useRef, type ReactNode } from "react";
 import type {
-  Activity, CharacterLook, Cat, ExView, Gratitude, Listing, Notif, Sheet, Stage, Tab, Thread, ThreadRole, Villager,
+  Activity, CharacterLook, Cat, EventItem, ExView, Gratitude, Listing, Notif, Sheet, Stage, Tab, Thread, ThreadRole, Villager,
 } from "./types";
-import { CATS, DIST, REPLIES, SEED_ITEMS, HOME_HOOD, SPROUT_CAP, POT_SEED, SEED_GRATITUDES } from "./data";
+import { CATS, DIST, REPLIES, SEED_ITEMS, HOME_HOOD, SPROUT_CAP, POT_SEED, SEED_GRATITUDES, SEED_EVENTS } from "./data";
 import { charFor, cloneChar, randomChar } from "./character";
 import { api, setToken } from "./api";
 
@@ -24,6 +24,7 @@ interface State {
   items: Listing[]; village: Villager[]; threads: Thread[]; activity: Activity[];
   notifications: Notif[]; blocked: string[];
   communityPot: number; gratitudes: Gratitude[];
+  events: EventItem[]; gatherView: "pacts" | "events";
 }
 
 const firstName = (n: string) => n.split(/[ &]/)[0];
@@ -60,6 +61,7 @@ function initialState(): State {
     ],
     blocked: [],
     communityPot: POT_SEED, gratitudes: SEED_GRATITUDES as Gratitude[],
+    events: SEED_EVENTS as EventItem[], gatherView: "pacts",
   };
 }
 
@@ -83,6 +85,9 @@ export interface Actions {
   markNotifsRead(): void; enableNotifications(): void;
   gift(amount: number): void; demurrageWeek(): void; drawFromPot(): void;
   addGratitude(to: string, cat: Cat, text: string): void;
+  setGatherView(v: "pacts" | "events"): void;
+  rsvp(eventId: string): void;
+  createEvent(d: { title: string; cat: Cat; when: string; place: string; capacity: number; blurb: string }): void;
 }
 
 interface Store { state: State; actions: Actions; }
@@ -118,6 +123,10 @@ function mapNotif(d: any): Notif {
 function mapGratitude(d: any): Gratitude {
   return { id: String(d.id), fromName: d.fromName, toName: d.toName, cat: String(d.category ?? "care").toLowerCase() as Cat, text: d.text, when: d.when ?? "recently" };
 }
+function mapEvent(d: any): EventItem {
+  return { id: String(d.id), host: d.host, cat: String(d.category ?? "care").toLowerCase() as Cat, neighborhood: d.neighborhood,
+    title: d.title, blurb: d.blurb, when: d.when, place: d.place, capacity: d.capacity ?? 0, going: d.going ?? 0, rsvped: !!d.rsvped, photo: d.photo };
+}
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const ref = useRef<State>();
@@ -152,8 +161,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
     // ---- API-mode loaders ----
     const bootstrap = async () => {
-      const [{ user }, feed, th, vil, notifs, grat, pot] = await Promise.all([
-        api.me(), api.feed({}), api.threads(), api.village(), api.notifications(), api.gratitudes(), api.pot(),
+      const [{ user }, feed, th, vil, notifs, grat, pot, evs] = await Promise.all([
+        api.me(), api.feed({}), api.threads(), api.village(), api.notifications(), api.gratitudes(), api.pot(), api.events(),
       ]);
       const u = user as any;
       s.meId = u.id; s.balance = u.balance ?? 0;
@@ -163,6 +172,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       s.village = (vil.villagers as any[]).map(mapVillager);
       s.notifications = (notifs.notifications as any[]).map(mapNotif);
       s.gratitudes = (grat.gratitudes as any[]).map(mapGratitude);
+      s.events = (evs.events as any[]).map(mapEvent);
       s.communityPot = (pot as any).balance ?? s.communityPot;
       s.stage = "app"; s.tab = "village"; bump();
     };
@@ -403,6 +413,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         s.gratitudes.unshift({ id: uid(), fromName: s.player.name, toName: to, cat, text, when: "just now" });
         if (API) api.addGratitude({ toName: to, category: cat, text }).catch(() => {});
         bump();
+      },
+      setGatherView(v) { s.gatherView = v; bump(); },
+      rsvp(eventId) {
+        const ev = s.events.find((e) => e.id === eventId); if (!ev) return;
+        ev.rsvped = !ev.rsvped; ev.going += ev.rsvped ? 1 : -1;
+        toast(ev.rsvped ? `You're going to “${ev.title}” 🎉` : "RSVP cancelled");
+        if (API) api.rsvp(eventId).catch(fail);
+        bump();
+      },
+      createEvent(d) {
+        if (API) {
+          (async () => {
+            try {
+              await api.createEvent({ title: d.title, category: d.cat, when: d.when, place: d.place, capacity: d.capacity, blurb: d.blurb });
+              const r = await api.events(); s.events = (r.events as any[]).map(mapEvent);
+            } catch (e) { fail(e); }
+            s.sheet = null; s.tab = "pacts"; s.gatherView = "events"; toast("Event posted! 🎉"); bump();
+          })();
+          return;
+        }
+        s.events.unshift({ id: uid(), host: s.player.name, cat: d.cat, neighborhood: s.player.neighborhood, title: d.title,
+          blurb: d.blurb || "(No details yet)", when: d.when, place: d.place, capacity: d.capacity, going: 1, rsvped: true });
+        s.sheet = null; s.tab = "pacts"; s.gatherView = "events"; toast("Event posted! 🎉"); bump();
       },
     };
   }, [s]);

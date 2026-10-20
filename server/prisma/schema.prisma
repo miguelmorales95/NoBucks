@@ -277,3 +277,32 @@ model Gratitude {
 
   @@index([createdAt])
 }
+
+model Event {
+  id           String      @id @default(uuid())
+  hostId       String
+  hostName     String
+  category     Category
+  neighborhood String?
+  title        String
+  blurb        String      @default("")
+  whenText     String
+  place        String
+  capacity     Int         @default(12)
+  photoUrl     String?
+  createdAt    DateTime    @default(now())
+
+  rsvps EventRsvp[]
+
+  @@index([createdAt])
+}
+
+model EventRsvp {
+  id        String   @id @default(uuid())
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+}

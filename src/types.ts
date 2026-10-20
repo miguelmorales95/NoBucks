@@ -45,6 +45,21 @@ export interface Gratitude {
   when: string;
 }
 
+export interface EventItem {
+  id: string;
+  host: string;
+  cat: Cat;
+  neighborhood?: string;
+  title: string;
+  blurb: string;
+  when: string;   // human text, e.g. "Sat 10am"
+  place: string;
+  capacity: number;
+  going: number;
+  rsvped: boolean;
+  photo?: string;
+}
+
 export interface CharacterLook {
   species: number;   // index into SPECIES
   skin: number;      // index into SKINS (person) or FURS (animal)
@@ -102,4 +117,6 @@ export type Sheet =
   | { kind: "report"; id: string }
   | { kind: "notifications" }
   | { kind: "gift" }
+  | { kind: "event"; id: string }
+  | { kind: "createEvent" }
   | null;

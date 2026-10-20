@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useStore, firstName } from "../store";
-import type { Listing, Sheet, ThreadRole, CharacterLook, Cat } from "../types";
+import type { Listing, Sheet, ThreadRole, CharacterLook, Cat, EventItem } from "../types";
 import { CATS, CAT_KEYS } from "../data";
 import { Character, randomChar, cloneChar } from "../character";
 import { CharacterBuilder } from "./CharacterBuilder";
@@ -31,6 +31,8 @@ function SheetBody({ sheet }: { sheet: NonNullable<Sheet> }) {
     case "report": { const it = state.items.find((i) => i.id === sheet.id); return it ? <ReportSheet item={it} /> : null; }
     case "notifications": return <NotificationsSheet />;
     case "gift": return <GiftSheet />;
+    case "event": { const ev = state.events.find((e) => e.id === sheet.id); return ev ? <EventSheet ev={ev} /> : null; }
+    case "createEvent": return <CreateEventSheet />;
   }
 }
 
@@ -189,6 +191,78 @@ function RatingSheet({ item, threadId }: { item: Listing; threadId: string }) {
       <div className="actions">
         <button className="btn btn-primary" onClick={submit}>Submit rating</button>
         <button className="btn btn-ghost" onClick={actions.closeSheet}>Skip</button>
+      </div>
+    </>
+  );
+}
+
+function EventSheet({ ev }: { ev: EventItem }) {
+  const { actions } = useStore();
+  const full = ev.going >= ev.capacity && !ev.rsvped;
+  return (
+    <>
+      <PhotoBanner item={{ photo: ev.photo, cat: ev.cat, title: ev.title } as Listing} big />
+      <div className="sh-head">
+        <Avatar name={ev.host} cat={ev.cat} />
+        <div>
+          <h2>{ev.title}</h2>
+          <div className="sh-meta"><span>Hosted by {ev.host}</span>{ev.neighborhood && <><span>·</span><span>🏘️ {ev.neighborhood}</span></>}</div>
+        </div>
+      </div>
+      <div className="evmeta">
+        <div><b>🗓️ When</b><span>{ev.when}</span></div>
+        <div><b>📍 Where</b><span>{ev.place}</span></div>
+        <div><b>👥 Going</b><span>{ev.going} / {ev.capacity}</span></div>
+      </div>
+      <div className="blurb">{ev.blurb}</div>
+      <div className="actions">
+        <button className={"btn " + (ev.rsvped ? "btn-ghost" : "btn-primary")} disabled={full} onClick={() => actions.rsvp(ev.id)}>
+          {ev.rsvped ? "✓ You're going — tap to cancel" : full ? "Event is full" : "🎉 RSVP — I'll be there"}
+        </button>
+        <button className="btn btn-ghost" onClick={actions.closeSheet}>Close</button>
+      </div>
+    </>
+  );
+}
+
+function CreateEventSheet() {
+  const { actions } = useStore();
+  const [title, setTitle] = useState("");
+  const [cat, setCat] = useState<Cat>("garden");
+  const [when, setWhen] = useState("");
+  const [place, setPlace] = useState("");
+  const [capacity, setCapacity] = useState(12);
+  const [blurb, setBlurb] = useState("");
+  return (
+    <>
+      <h2>Host an event 🎉</h2>
+      <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 14px" }}>
+        A group get-together for the neighborhood — a seed swap, repair café, potluck, or cleanup.
+      </p>
+      <div className="field"><label>Title</label>
+        <input value={title} maxLength={70} placeholder="e.g. Saturday block cleanup" onChange={(e) => setTitle(e.target.value)} /></div>
+      <div className="field"><label>Category</label>
+        <select value={cat} onChange={(e) => setCat(e.target.value as Cat)}>
+          {CAT_KEYS.map((k) => <option key={k} value={k}>{CATS[k].e} {CATS[k].label}</option>)}
+        </select></div>
+      <div className="field"><label>When</label>
+        <input value={when} placeholder="e.g. Sat 10am" onChange={(e) => setWhen(e.target.value)} /></div>
+      <div className="field"><label>Where</label>
+        <input value={place} placeholder="e.g. Echo Park Lake lawn" onChange={(e) => setPlace(e.target.value)} /></div>
+      <div className="field"><label>Capacity</label>
+        <div className="steps">
+          <button onClick={() => setCapacity(Math.max(2, capacity - 1))}>–</button>
+          <div className="v">{capacity}</div>
+          <button onClick={() => setCapacity(Math.min(100, capacity + 1))}>+</button>
+        </div></div>
+      <div className="field"><label>Details</label>
+        <textarea value={blurb} placeholder="What to bring, what to expect." onChange={(e) => setBlurb(e.target.value)} /></div>
+      <div className="actions">
+        <button className="btn btn-primary" onClick={() => {
+          if (!title.trim() || !when.trim() || !place.trim()) { actions.toast("Add a title, when, and where"); return; }
+          actions.createEvent({ title: title.trim(), cat, when: when.trim(), place: place.trim(), capacity, blurb: blurb.trim() });
+        }}>Post event</button>
+        <button className="btn btn-ghost" onClick={actions.closeSheet}>Cancel</button>
       </div>
     </>
   );

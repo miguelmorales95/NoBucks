@@ -41,6 +41,13 @@ export const DIST = { min: 0.5, max: 12, step: 0.5, default: 1.5 };
 export const SPROUT_CAP = 40;
 export const POT_SEED = 128;
 
+export const SEED_EVENTS = [
+  { id: "e1", host: "Grace", cat: "garden", neighborhood: "Echo Park", title: "Spring seed swap in the park", blurb: "Bring seeds, seedlings, or just yourself. We'll trade and plan summer gardens together.", when: "Sat 10am", place: "Echo Park Lake lawn", capacity: 20, going: 8, rsvped: false },
+  { id: "e2", host: "Theo", cat: "repair", neighborhood: "Silver Lake", title: "Repair café — bring broken things", blurb: "Bikes, lamps, small appliances. A few of us fix things together; learn as we go.", when: "Sun 1pm", place: "Sunset Triangle Plaza", capacity: 12, going: 5, rsvped: false },
+  { id: "e3", host: "Omar", cat: "care", neighborhood: "Echo Park", title: "Kids' craft hour + parent hangout", blurb: "Crafts for the little ones, coffee and real talk for the grown-ups.", when: "Wed 4pm", place: "Community room, Alvarado St", capacity: 15, going: 11, rsvped: false },
+  { id: "e4", host: "Luz", cat: "teach", neighborhood: "Chinatown", title: "Language exchange picnic", blurb: "Spanish, English, Cantonese, Tagalog — practice over a potluck. All levels welcome.", when: "Sat 12pm", place: "Chinatown Central Plaza", capacity: 25, going: 14, rsvped: false },
+];
+
 export const SEED_GRATITUDES = [
   { id: "g1", fromName: "Priya", toName: "Maya", cat: "food", text: "Maya's sourdough got my whole family baking together. 🍞", when: "2d" },
   { id: "g2", fromName: "Beck", toName: "Theo", cat: "repair", text: "Theo fixed my brakes and taught me how to do it myself. Lifesaver.", when: "4d" },
