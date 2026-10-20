@@ -37,7 +37,8 @@ export const REPLIES = [
 
 export const DIST = { min: 0.5, max: 12, step: 0.5, default: 1.5 };
 
-export const SEED_ITEMS: Listing[] = [
+// Numeric ids here are mapped to strings below, so demo ids match the server's string ids.
+const RAW_ITEMS: any[] = [
   { id: 1, type: "offer", cat: "food", name: "Maya", dist: 0.4, mx: 20, my: 24, rating: 4.9, reviews: 37, title: "Fresh sourdough loaf + a jar of starter", blurb: "Baked this morning. I'll hand over a live starter and teach you to keep it bubbling so you never buy bread again.", review: "The starter is thriving and so am I. Maya even texts to check on it.", revBy: "Theo", cost: 3, unit: "loaf" },
   { id: 2, type: "offer", cat: "teach", name: "Dev", dist: 0.8, mx: 73, my: 19, rating: 4.8, reviews: 21, title: "Beginner guitar lessons", blurb: "We'll get you playing your first three chords and an easy song by the end. Borrow one of mine to start.", review: "Patient and fun — I played a whole song by the second week.", revBy: "Priya", cost: 4, unit: "hour" },
   { id: 3, type: "offer", cat: "repair", name: "Theo", dist: 0.3, mx: 30, my: 63, rating: 5.0, reviews: 48, title: "Bike tune-up & flat repair", blurb: "Brakes, gears, chains, flats. I'll bring the tools to your porch and show you the easy stuff yourself.", review: "Fixed my squeaky brakes in ten minutes and refused extra sprouts. A legend.", revBy: "Grace", cost: 3, unit: "bike" },
@@ -57,3 +58,5 @@ export const SEED_ITEMS: Listing[] = [
   { id: 15, type: "pact", cat: "garden", name: "Grace & Nina", dist: 0.5, mx: 35, my: 31, rating: 4.9, reviews: 14, title: "Plant-watering ↔ dog-walking", blurb: "A standing weekly swap: Nina waters Grace's garden when she travels, Grace walks Biscuit on Nina's long shifts. Open to a third for weekends.", review: "These two have kept my street's gardens and dogs happy for a year.", revBy: "Maya", cost: "pact", unit: "" },
   { id: 16, type: "pact", cat: "teach", name: "Luz", dist: 0.9, mx: 70, my: 47, rating: 5.0, reviews: 20, title: "Spanish ↔ English practice circle", blurb: "Tuesdays & Thursdays, 7pm at the Echo Park library. Half Spanish, half English, all patient. Room for one or two more.", review: "My Spanish went from zero to ordering tacos confidently. Warm group.", revBy: "Dev", cost: "pact", unit: "" },
 ];
+
+export const SEED_ITEMS: Listing[] = RAW_ITEMS.map((r) => ({ ...r, id: String(r.id) })) as Listing[];

@@ -22,7 +22,7 @@ export function VerifyScreen() {
     );
   }
 
-  const start = () => { setChecking(true); window.setTimeout(() => actions.verify(), 1400); };
+  const start = (method: string) => { setChecking(true); window.setTimeout(() => actions.verify(method), 1400); };
 
   return (
     <div className="gate" style={{ flex: 1 }}>
@@ -32,7 +32,7 @@ export function VerifyScreen() {
       <div className="vbox">Any one of these works. We accept consular IDs and foreign passports, or no document at all. Pick whatever is easiest for you.</div>
       <div className="auth-btns">
         {METHODS.map((m) => (
-          <button key={m.title} className="auth-btn" onClick={start}>
+          <button key={m.title} className="auth-btn" onClick={() => start(m.title)}>
             <span className="lmark v">{m.icon}</span>
             <span className="txt">{m.title}<span className="sub">{m.sub}</span></span>
           </button>

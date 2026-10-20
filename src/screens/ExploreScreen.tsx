@@ -80,11 +80,13 @@ function MapView() {
 export function ExploreScreen() {
   const { state, actions } = useStore();
   const open = (item: Listing) => actions.openSheet({ kind: "item", id: item.id });
+  const q = state.query.trim().toLowerCase();
   const list = state.items.filter(
     (i) => (i.type === "offer" || i.type === "request")
       && (state.filter === "all" || i.cat === state.filter)
       && (i.name === "You" || i.dist <= state.maxDist)
       && !state.blocked.includes(i.name)
+      && (!q || `${i.title} ${i.blurb} ${i.name}`.toLowerCase().includes(q))
   );
 
   return (
@@ -99,13 +101,22 @@ export function ExploreScreen() {
         <button aria-pressed={state.exView === "list"} onClick={() => actions.setExView("list")}>🗂️ List</button>
         <button aria-pressed={state.exView === "map"} onClick={() => actions.setExView("map")}>🗺️ Map</button>
       </div>
+      {state.exView === "list" && (
+        <div className="field" style={{ marginBottom: 12 }}>
+          <input
+            value={state.query}
+            placeholder="Search offers & requests…"
+            onChange={(e) => actions.setQuery(e.target.value)}
+          />
+        </div>
+      )}
       <DistanceSlider />
       <ChipsBar />
       {state.exView === "map" ? <MapView /> : (
         <div className="feed">
           {list.length
             ? list.map((it) => <ListingCard key={it.id} item={it} onOpen={open} />)
-            : <div className="empty"><span className="e">🍃</span>Nothing within {state.maxDist} mi here —<br />drag the slider wider to see more.</div>}
+            : <div className="empty"><span className="e">🍃</span>{q ? <>No matches for “{state.query}”.</> : <>Nothing within {state.maxDist} mi here —<br />drag the slider wider to see more.</>}</div>}
         </div>
       )}
     </>

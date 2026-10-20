@@ -27,7 +27,7 @@ function SheetBody({ sheet }: { sheet: NonNullable<Sheet> }) {
     case "confirm": { const it = state.items.find((i) => i.id === sheet.id); return it ? <ConfirmSheet item={it} /> : null; }
     case "villager": { const v = state.village[sheet.index]; return v ? <VillagerSheet index={sheet.index} /> : null; }
     case "addVillager": return <AddVillagerSheet />;
-    case "rating": { const it = state.items.find((i) => i.id === sheet.targetId); return it ? <RatingSheet item={it} /> : null; }
+    case "rating": { const it = state.items.find((i) => i.id === sheet.targetId); return it ? <RatingSheet item={it} threadId={sheet.threadId} /> : null; }
     case "report": { const it = state.items.find((i) => i.id === sheet.id); return it ? <ReportSheet item={it} /> : null; }
     case "notifications": return <NotificationsSheet />;
   }
@@ -161,7 +161,7 @@ function AddVillagerSheet() {
   );
 }
 
-function RatingSheet({ item }: { item: Listing }) {
+function RatingSheet({ item, threadId }: { item: Listing; threadId: string }) {
   const { actions } = useStore();
   const [stars, setStars] = useState(5);
   return (
@@ -176,7 +176,7 @@ function RatingSheet({ item }: { item: Listing }) {
       <div className="field"><label>Add a note (optional)</label>
         <textarea placeholder="What made it great? Anything others should know?" /></div>
       <div className="actions">
-        <button className="btn btn-primary" onClick={() => actions.rate(item.id, stars)}>Submit rating</button>
+        <button className="btn btn-primary" onClick={() => actions.rate(threadId, item.id, stars)}>Submit rating</button>
         <button className="btn btn-ghost" onClick={actions.closeSheet}>Skip</button>
       </div>
     </>
@@ -211,8 +211,8 @@ function ReportSheet({ item }: { item: Listing }) {
       <div className="field"><label>Add details (optional)</label>
         <textarea placeholder="Anything that helps us understand." /></div>
       <div className="actions">
-        <button className="btn btn-primary" onClick={() => actions.report(item.name)}>Submit report</button>
-        <button className="btn btn-ghost" onClick={() => actions.block(item.name)}>🚫 Block {who}</button>
+        <button className="btn btn-primary" onClick={() => actions.report(item, reason)}>Submit report</button>
+        <button className="btn btn-ghost" onClick={() => actions.block(item)}>🚫 Block {who}</button>
         <button className="btn btn-ghost" onClick={actions.closeSheet}>Cancel</button>
       </div>
     </>

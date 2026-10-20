@@ -8,7 +8,8 @@ export type PostType = "offer" | "request" | "pact";
 export type Cost = number | "barter" | "pact";
 
 export interface Listing {
-  id: number;
+  id: string;
+  authorId?: string; // server user id of the author (API mode)
   type: PostType;
   cat: Cat;
   name: string;
@@ -27,7 +28,7 @@ export interface Listing {
 }
 
 export interface Notif {
-  id: number;
+  id: string;
   icon: string;
   title: string;
   body: string;
@@ -60,14 +61,15 @@ export type ThreadRole = "client" | "provider" | "joiner";
 export type ThreadStatus = "arranging" | "reserved" | "done";
 
 export interface Thread {
-  id: number;
+  id: string;
   name: string;
   cat: Cat;
-  itemId: number;
+  itemId: string;
   role: ThreadRole;
   status: ThreadStatus;
   msgs: Msg[];
 }
+// note: itemId references a Listing id (string)
 
 export interface Activity {
   ic: string;
@@ -82,11 +84,11 @@ export type Tab = "village" | "explore" | "post" | "pacts" | "chats";
 export type ExView = "list" | "map";
 
 export type Sheet =
-  | { kind: "item"; id: number }
-  | { kind: "confirm"; id: number }
+  | { kind: "item"; id: string }
+  | { kind: "confirm"; id: string }
   | { kind: "villager"; index: number }
   | { kind: "addVillager" }
-  | { kind: "rating"; targetId: number; threadId: number }
-  | { kind: "report"; id: number }
+  | { kind: "rating"; targetId: string; threadId: string }
+  | { kind: "report"; id: string }
   | { kind: "notifications" }
   | null;

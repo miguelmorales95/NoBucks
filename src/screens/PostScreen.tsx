@@ -22,19 +22,22 @@ export function PostScreen() {
   const [blurb, setBlurb] = useState("");
   const [cost, setCost] = useState(3);
   const [photo, setPhoto] = useState<string | undefined>(undefined);
+  const [photoFile, setPhotoFile] = useState<File | undefined>(undefined);
   const showCost = type !== "pact";
 
   const onPhoto = (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
+    setPhotoFile(f);
     const r = new FileReader();
     r.onload = () => setPhoto(String(r.result));
     r.readAsDataURL(f);
   };
+  const clearPhoto = () => { setPhoto(undefined); setPhotoFile(undefined); };
 
   const submit = () => {
     if (!title.trim()) { actions.toast("Give your post a title first ✏️"); return; }
-    actions.post({ type, cat, title: title.trim(), blurb: blurb.trim(), cost: type === "pact" ? "pact" : cost, photo });
+    actions.post({ type, cat, title: title.trim(), blurb: blurb.trim(), cost: type === "pact" ? "pact" : cost, photo, photoFile });
   };
 
   return (
@@ -57,7 +60,7 @@ export function PostScreen() {
         {photo ? (
           <div className="photoedit">
             <img src={photo} alt="preview" />
-            <button className="opt2" onClick={() => setPhoto(undefined)}>Remove photo</button>
+            <button className="opt2" onClick={clearPhoto}>Remove photo</button>
           </div>
         ) : (
           <label className="photoadd">
