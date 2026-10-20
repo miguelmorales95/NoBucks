@@ -20,8 +20,8 @@ async function main() {
 
   await prisma.listing.createMany({
     data: [
-      { authorId: maya.id, type: "OFFER", category: "FOOD", title: "Fresh sourdough loaf + a jar of starter", blurb: "Baked this morning; I'll teach you to keep the starter alive.", costType: "SPROUTS", cost: 3, unit: "loaf", lat: base.lat, lng: base.lng },
-      { authorId: theo.id, type: "OFFER", category: "REPAIR", title: "Bike tune-up & flat repair", blurb: "Brakes, gears, flats — I bring the tools to your porch.", costType: "SPROUTS", cost: 3, unit: "bike", lat: base.lat, lng: base.lng },
+      { authorId: maya.id, type: "OFFER", category: "FOOD", title: "Fresh sourdough loaf + a jar of starter", blurb: "Baked this morning; I'll teach you to keep the starter alive.", costType: "SPROUTS", cost: 3, unit: "loaf", neighborhood: "Echo Park", lat: base.lat, lng: base.lng },
+      { authorId: theo.id, type: "OFFER", category: "REPAIR", title: "Bike tune-up & flat repair", blurb: "Brakes, gears, flats — I bring the tools to your porch.", costType: "SPROUTS", cost: 3, unit: "bike", neighborhood: "Silver Lake", lat: base.lat, lng: base.lng },
     ],
     skipDuplicates: true,
   });
