@@ -1,0 +1,833 @@
+<title>Clover</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Sign in -> verify -> build a villager (human or animal) -> land in your animated
+     village. Garden / Animal-Crossing cozy palette: sage, cream, coral, sea teal. */
+  :root{
+    --bg:#dfe9d8; --surface:#fffdf7; --surface-2:#f3efe2; --surface-3:#eae4d3;
+    --ink:#35463b; --muted:#73836f; --line:#e6e0cf;
+    --accent:#f08a63; --accent-ink:#8a3d23; --teal:#2ca397; --leaf:#6fae4e;
+    --gold:#f0b23e; --good:#4e9c6b; --star:#f2b02e;
+    --shadow:0 10px 26px rgba(43,58,44,.14); --shadow-soft:0 4px 14px rgba(43,58,44,.08);
+    --r-lg:24px; --r-md:18px; --r-sm:12px;
+    --map-land:#edefd9; --map-block:#e2e5c7; --map-road:#fbfaf1; --map-park:#cbe0a6;
+    --map-water:#bfe2e6; --map-tree:#84b85c;
+    --sky-top:#bfe8ee; --sky-bot:#dff2e4; --grass:#aed583; --grass-dk:#8fbf6a;
+    --font-display:"Fredoka","Trebuchet MS",system-ui,sans-serif;
+    --font-body:"Nunito",-apple-system,"Segoe UI",system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0f1a15; --surface:#1a2820; --surface-2:#223328; --surface-3:#2a3d30;
+    --ink:#eaf3ea; --muted:#9db39d; --line:#2e4134;
+    --accent:#f3936e; --accent-ink:#ffd9c9; --teal:#39b7a9; --leaf:#86c061;
+    --gold:#f3bd56; --good:#6fc08c; --star:#f6c357;
+    --map-land:#17241c; --map-block:#1f2f25; --map-road:#2a3b30; --map-park:#2a472d;
+    --map-water:#1d4648; --map-tree:#4c7a42;
+    --sky-top:#16343a; --sky-bot:#193026; --grass:#2f5a33; --grass-dk:#264a2a;
+    --shadow:0 12px 30px rgba(0,0,0,.4); --shadow-soft:0 4px 14px rgba(0,0,0,.3); color-scheme:dark;}}
+  :root[data-theme="dark"]{
+    --bg:#0f1a15; --surface:#1a2820; --surface-2:#223328; --surface-3:#2a3d30;
+    --ink:#eaf3ea; --muted:#9db39d; --line:#2e4134;
+    --accent:#f3936e; --accent-ink:#ffd9c9; --teal:#39b7a9; --leaf:#86c061;
+    --gold:#f3bd56; --good:#6fc08c; --star:#f6c357;
+    --map-land:#17241c; --map-block:#1f2f25; --map-road:#2a3b30; --map-park:#2a472d;
+    --map-water:#1d4648; --map-tree:#4c7a42;
+    --sky-top:#16343a; --sky-bot:#193026; --grass:#2f5a33; --grass-dk:#264a2a;
+    --shadow:0 12px 30px rgba(0,0,0,.4); --shadow-soft:0 4px 14px rgba(0,0,0,.3); color-scheme:dark;}
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--teal);z-index:60}
+  .app{position:relative;max-width:450px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;background:var(--surface);box-shadow:var(--shadow)}
+  @media(min-width:520px){body{padding:22px 0}.app{min-height:calc(100% - 44px);border-radius:30px;overflow:hidden}}
+
+  .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:linear-gradient(160deg,var(--teal),#2f8f84);color:#fff;
+    padding:14px max(18px,env(safe-area-inset-left,0px)) 16px max(18px,env(safe-area-inset-right,0px));border-bottom:3px solid rgba(0,0,0,.06)}
+  .top .hi{display:flex;align-items:center;gap:12px}
+  .top .hi .me{width:48px;height:48px;border-radius:50%;background:#dff1ef;overflow:hidden;flex:none;border:3px solid rgba(255,255,255,.6);display:grid;place-items:center}
+  .top .hi .me svg{width:112%;height:112%;margin-top:9%}
+  .top .hi .who{flex:1;min-width:0}
+  .top .hi .who .k{font-size:12px;opacity:.85;letter-spacing:.04em}
+  .top .hi .who .n{font-family:var(--font-display);font-weight:600;font-size:19px;line-height:1.1}
+  .wallet{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.4);border-radius:999px;
+    padding:7px 13px;font-family:var(--font-display);font-weight:600;font-size:16px;color:#fff;cursor:pointer;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .loc{display:flex;align-items:center;gap:5px;margin-top:11px;font-size:12.5px;opacity:.92}
+  .brand{position:absolute;top:13px;right:max(18px,env(safe-area-inset-right,0px));font-family:var(--font-display);font-weight:600;font-size:13px;letter-spacing:.06em;opacity:.8}
+
+  .screen{flex:1;padding:16px max(16px,env(safe-area-inset-left,0px)) 24px max(16px,env(safe-area-inset-right,0px))}
+  .screen.flush{padding:0}
+  .screen-title{font-family:var(--font-display);font-weight:600;font-size:22px;margin:4px 2px 2px;text-wrap:balance}
+  .screen-sub{color:var(--muted);font-size:13.5px;margin:0 2px 14px}
+
+  .seg{display:flex;gap:7px;background:var(--surface-2);padding:5px;border-radius:14px;margin:0 2px 12px}
+  .seg button{flex:1;border:none;background:transparent;color:var(--muted);font-family:var(--font-display);font-weight:600;font-size:13px;
+    padding:9px 4px;border-radius:10px;cursor:pointer;transition:.15s;white-space:nowrap}
+  .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-soft)}
+
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 12px;scrollbar-width:none;margin:0 -4px}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:none;border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:999px;padding:8px 14px;
+    font-family:var(--font-body);font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;transition:.15s}
+  .chip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+  .chip .e{font-size:14px}
+
+  .feed{display:flex;flex-direction:column;gap:14px}
+  .card{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-soft);overflow:hidden;cursor:pointer;transition:transform .12s ease}
+  .card:active{transform:scale(.985)}
+  .card .row{display:flex;gap:12px;padding:14px 15px}
+  .avatar{width:48px;height:48px;border-radius:16px;flex:none;display:grid;place-items:center;font-family:var(--font-display);font-weight:600;font-size:17px;position:relative}
+  .avatar .badge{position:absolute;right:-5px;bottom:-5px;width:23px;height:23px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-size:12px;border:2px solid var(--surface)}
+  .card .body{flex:1;min-width:0}
+  .card .meta{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;font-weight:700;flex-wrap:wrap}
+  .card .meta .dot{width:3px;height:3px;border-radius:50%;background:var(--muted)}
+  .rate{display:inline-flex;align-items:center;gap:3px;color:var(--muted);font-weight:800;white-space:nowrap}
+  .rate b{color:var(--ink)}
+  .card h3{font-family:var(--font-display);font-weight:600;font-size:16.5px;margin:3px 0 2px;line-height:1.2}
+  .card p{margin:0;color:var(--muted);font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card .foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 15px 14px}
+  .tag{font-weight:800;font-size:11px;letter-spacing:.05em;text-transform:uppercase;padding:4px 9px;border-radius:999px}
+  .tag.offer{background:rgba(44,163,151,.14);color:var(--teal)}
+  .tag.request{background:rgba(240,138,99,.16);color:var(--accent-ink)}
+  .tag.pact{background:rgba(240,178,62,.18);color:#9a7417}
+  @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .tag.pact{color:var(--gold)}}
+  :root[data-theme="dark"] .tag.pact{color:var(--gold)}
+  .price{font-family:var(--font-display);font-weight:600;font-size:15px;display:flex;align-items:center;gap:4px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .price small{font-weight:700;font-family:var(--font-body);color:var(--muted);font-size:11px}
+
+  .btn{border:none;border-radius:14px;font-family:var(--font-display);font-weight:600;font-size:15px;padding:12px 18px;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:transform .1s,filter .15s;width:100%}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.08)}
+  .btn-primary:hover{filter:brightness(1.03)}
+  .btn-teal{background:var(--teal);color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.08)}
+  .btn-ghost{background:var(--surface-2);color:var(--ink);border:1.5px solid var(--line)}
+
+  .field{margin-bottom:15px}
+  .field label{display:block;font-weight:800;font-size:12.5px;letter-spacing:.03em;margin:0 2px 7px;color:var(--muted);text-transform:uppercase}
+  .field input,.field textarea,.field select{width:100%;border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:14px;
+    padding:13px 14px;font-family:var(--font-body);font-size:15px;font-weight:600}
+  .field textarea{resize:vertical;min-height:84px;line-height:1.45}
+  .field input:focus,.field textarea:focus,.field select:focus{outline:3px solid rgba(44,163,151,.35);border-color:var(--teal)}
+  .catgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+  .catgrid .opt{display:flex;align-items:center;gap:9px;border:1.5px solid var(--line);background:var(--surface-2);border-radius:14px;padding:11px 12px;cursor:pointer;font-weight:700;font-size:13.5px}
+  .catgrid .opt[aria-pressed="true"]{border-color:var(--teal);background:rgba(44,163,151,.1)}
+  .catgrid .opt .e{font-size:18px}
+  .steps{display:flex;align-items:center;gap:12px}
+  .steps button{width:44px;height:44px;border-radius:13px;border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);font-size:22px;font-family:var(--font-display);cursor:pointer;flex:none}
+  .steps .v{font-family:var(--font-display);font-weight:600;font-size:22px;min-width:64px;text-align:center;display:flex;align-items:center;justify-content:center;gap:5px;font-variant-numeric:tabular-nums}
+
+  .balance{background:linear-gradient(155deg,#2ca397,#227f75);color:#fff;border-radius:var(--r-lg);padding:18px 20px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .balance::after{content:"🌱";position:absolute;right:-10px;bottom:-18px;font-size:92px;opacity:.14}
+  .balance .k{font-size:12.5px;opacity:.9;letter-spacing:.04em;font-weight:700}
+  .balance .big{font-family:var(--font-display);font-weight:600;font-size:40px;line-height:1;margin:5px 0 2px;display:flex;align-items:baseline;gap:8px;font-variant-numeric:tabular-nums}
+  .balance .big small{font-size:16px;font-weight:600;opacity:.9}
+  .balance .note{font-size:12.5px;opacity:.9;margin-top:4px}
+  .section-h{font-family:var(--font-display);font-weight:600;font-size:16px;margin:20px 2px 10px}
+  .ledger{display:flex;flex-direction:column;gap:8px}
+  .led{display:flex;align-items:center;gap:12px;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r-md);padding:12px 14px}
+  .led .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:18px;flex:none}
+  .led .t{flex:1;min-width:0}
+  .led .t b{font-weight:800;font-size:14px;display:block}
+  .led .t span{font-size:12px;color:var(--muted)}
+  .led .amt{font-family:var(--font-display);font-weight:600;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .amt.plus{color:var(--good)}.amt.minus{color:var(--accent-ink)}
+  @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .amt.minus{color:var(--accent)}}
+  :root[data-theme="dark"] .amt.minus{color:var(--accent)}
+  .empty{text-align:center;color:var(--muted);padding:34px 20px;font-weight:600}
+  .empty .e{font-size:40px;display:block;margin-bottom:10px}
+
+  /* ---------- animated village ---------- */
+  .vscene{position:relative;height:min(46vh,330px);min-height:250px;border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-soft);border:1.5px solid var(--line)}
+  .vscene .vbg{position:absolute;inset:0;width:100%;height:100%}
+  .vplate{position:absolute;top:12px;left:12px;background:var(--surface);border:1.5px solid var(--line);border-radius:999px;padding:5px 13px;
+    font-family:var(--font-display);font-weight:600;font-size:13px;box-shadow:var(--shadow-soft);z-index:5;display:flex;align-items:center;gap:6px}
+  .walker{position:absolute;width:48px;height:54px;background:none;border:none;padding:0;cursor:pointer;z-index:2;will-change:transform,left,top}
+  .walker svg{width:100%;height:100%;display:block}
+  .walker::after{content:"";position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:26px;height:7px;border-radius:50%;background:rgba(30,40,30,.16)}
+  .walker .crown{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:15px;z-index:3}
+  .addfab{position:absolute;right:12px;bottom:12px;z-index:6;background:var(--accent);color:#fff;border:3px solid var(--surface);border-radius:999px;
+    padding:9px 15px 9px 12px;font-family:var(--font-display);font-weight:600;font-size:13.5px;cursor:pointer;box-shadow:0 6px 14px rgba(240,138,99,.4);display:flex;align-items:center;gap:6px}
+  .vmeta{display:flex;gap:10px;margin:14px 0 4px}
+  .vmeta .vm{flex:1;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r-md);padding:12px;text-align:center;box-shadow:var(--shadow-soft)}
+  .vmeta .vm .num{font-family:var(--font-display);font-weight:600;font-size:20px;line-height:1}
+  .vmeta .vm .lab{font-size:10.5px;color:var(--muted);font-weight:800;letter-spacing:.03em;margin-top:3px;text-transform:uppercase}
+
+  /* ---------- map ---------- */
+  .mapwrap{position:relative;width:100%;height:min(54vh,460px);min-height:320px;overflow:hidden;background:var(--map-land);border:1.5px solid var(--line);border-radius:var(--r-lg)}
+  .mapwrap svg.base{position:absolute;inset:0;width:100%;height:100%}
+  .pin{position:absolute;transform:translate(-50%,-100%);background:none;border:none;padding:0;cursor:pointer;z-index:2;transition:transform .14s ease}
+  .pin .drop{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:17px;background:var(--surface);border:2.5px solid var(--pc,var(--teal));box-shadow:0 4px 10px rgba(0,0,0,.22);position:relative}
+  .pin .drop::after{content:"";position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border:6px solid transparent;border-top-color:var(--pc,var(--teal))}
+  .pin[aria-pressed="true"]{transform:translate(-50%,-100%) scale(1.22);z-index:5}
+  .pin[aria-pressed="true"] .drop{border-color:var(--accent)}
+  .pin.dim{opacity:.32}
+  .youpin{position:absolute;transform:translate(-50%,-50%);z-index:3;display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none}
+  .youpin .ring{width:18px;height:18px;border-radius:50%;background:var(--accent);border:3px solid var(--surface);box-shadow:0 0 0 4px rgba(240,138,99,.3);animation:pulse 2.2s ease-in-out infinite}
+  .youpin .lab{font-family:var(--font-display);font-weight:600;font-size:11px;color:var(--ink);background:var(--surface);padding:1px 8px;border-radius:999px;border:1.5px solid var(--line)}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(240,138,99,.3)}50%{box-shadow:0 0 0 9px rgba(240,138,99,.05)}}
+  .mprev{position:absolute;left:12px;right:12px;bottom:12px;z-index:6;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:12px;display:flex;gap:12px;align-items:center;transform:translateY(150%);transition:transform .26s cubic-bezier(.2,.8,.3,1)}
+  .mprev.show{transform:translateY(0)}
+  .mprev .body{flex:1;min-width:0}
+  .mprev b{font-family:var(--font-display);font-weight:600;font-size:14.5px;display:block;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mprev span{font-size:12px;color:var(--muted);font-weight:700}
+  .mprev .go{flex:none;background:var(--teal);color:#fff;border:none;border-radius:12px;padding:10px 14px;font-family:var(--font-display);font-weight:600;font-size:13.5px;cursor:pointer}
+
+  /* ---------- chats ---------- */
+  .trow{display:flex;gap:12px;align-items:center;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r-md);padding:12px 14px;cursor:pointer;margin-bottom:10px}
+  .trow .body{flex:1;min-width:0}
+  .trow .body b{font-family:var(--font-display);font-weight:600;font-size:15px;display:block}
+  .trow .body span{font-size:13px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tstat{font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:999px;white-space:nowrap;flex:none}
+  .tstat.arranging{background:var(--surface-2);color:var(--muted)}
+  .tstat.reserved{background:rgba(240,178,62,.18);color:#9a7417}
+  @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .tstat.reserved{color:var(--gold)}}
+  :root[data-theme="dark"] .tstat.reserved{color:var(--gold)}
+  .tstat.done{background:rgba(78,156,107,.18);color:var(--good)}
+  .chat{display:flex;flex-direction:column;min-height:calc(100% - 0px)}
+  .chat-head{display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1.5px solid var(--line);margin-bottom:12px}
+  .chat-head .back{background:var(--surface-2);border:1.5px solid var(--line);border-radius:10px;width:38px;height:38px;font-size:18px;cursor:pointer;flex:none;color:var(--ink)}
+  .chat-head .ti{flex:1;min-width:0}
+  .chat-head .ti b{font-family:var(--font-display);font-weight:600;font-size:16px;display:block;line-height:1.1}
+  .chat-head .ti span{font-size:12px;color:var(--muted)}
+  .ctx{background:var(--surface-2);border-radius:12px;padding:9px 12px;font-size:12.5px;color:var(--muted);font-weight:700;margin-bottom:12px;display:flex;gap:7px;align-items:center}
+  .bubbles{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+  .bub{max-width:82%;padding:10px 13px;border-radius:16px;font-size:14px;line-height:1.4}
+  .bub.them{background:var(--surface-2);color:var(--ink);align-self:flex-start;border-bottom-left-radius:5px}
+  .bub.me{background:var(--teal);color:#fff;align-self:flex-end;border-bottom-right-radius:5px}
+  .bub.sys{align-self:center;background:rgba(240,178,62,.16);color:#9a7417;font-weight:700;font-size:12.5px;text-align:center;border-radius:999px;padding:6px 14px}
+  @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .bub.sys{color:var(--gold)}}
+  :root[data-theme="dark"] .bub.sys{color:var(--gold)}
+  .chat-act{margin-bottom:12px}
+  .chat-input{display:flex;gap:9px;align-items:flex-end;position:sticky;bottom:0;background:var(--surface);padding-top:6px}
+  .chat-input textarea{flex:1;min-width:0;border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:16px;padding:11px 14px;font-family:var(--font-body);font-size:15px;font-weight:600;resize:none;height:44px;max-height:110px}
+  .chat-input textarea:focus{outline:3px solid rgba(44,163,151,.35);border-color:var(--teal)}
+  .chat-input .send{flex:none;width:44px;height:44px;border-radius:14px;border:none;background:var(--teal);color:#fff;font-size:19px;cursor:pointer}
+
+  /* ---------- bottom nav ---------- */
+  .nav{position:sticky;bottom:0;z-index:40;display:flex;background:var(--surface);border-top:1.5px solid var(--line);padding:8px 6px calc(8px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 18px rgba(43,58,44,.07)}
+  .nav button{flex:1;border:none;background:transparent;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;font-family:var(--font-body);font-weight:800;font-size:10.5px;letter-spacing:.02em;transition:.15s}
+  .nav button .ico{font-size:21px;line-height:1;transition:transform .15s}
+  .nav button[aria-pressed="true"]{color:var(--teal)}
+  .nav button[aria-pressed="true"] .ico{transform:translateY(-2px) scale(1.08)}
+  .nav .vico{width:26px;height:26px;border-radius:50%;overflow:hidden;background:#dff1ef;display:grid;place-items:center;border:2px solid currentColor}
+  .nav .vico svg{width:118%;height:118%;margin-top:10%}
+  .nav .post-btn .ico{background:var(--accent);color:#fff;width:46px;height:46px;border-radius:16px;display:grid;place-items:center;font-size:26px;margin-top:-16px;box-shadow:0 6px 14px rgba(240,138,99,.45);border:3px solid var(--surface)}
+  .nav .post-btn[aria-pressed="true"]{color:var(--accent)}
+
+  /* ---------- sheet ---------- */
+  .scrim{position:fixed;inset:0;background:rgba(26,34,28,.5);z-index:70;opacity:0;pointer-events:none;transition:opacity .22s}
+  .scrim.show{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:450px;z-index:80;background:var(--surface);border-radius:26px 26px 0 0;
+    padding:10px 20px calc(22px + env(safe-area-inset-bottom,0px));box-shadow:0 -14px 40px rgba(0,0,0,.26);transition:transform .26s cubic-bezier(.2,.8,.3,1);max-height:92%;overflow:auto}
+  .sheet.show{transform:translate(-50%,0)}
+  .grab{width:42px;height:5px;border-radius:999px;background:var(--line);margin:4px auto 16px}
+  .sheet .sh-head{display:flex;gap:13px;align-items:flex-start;margin-bottom:14px}
+  .sheet h2{font-family:var(--font-display);font-weight:600;font-size:21px;margin:2px 0 4px;line-height:1.15;text-wrap:balance}
+  .sheet .sh-meta{color:var(--muted);font-size:13px;font-weight:700;display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+  .sheet .blurb{background:var(--surface-2);border-radius:16px;padding:14px;font-size:14px;color:var(--ink);line-height:1.55;margin-bottom:14px}
+  .review{display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;padding:0 2px}
+  .review .q{font-size:13.5px;color:var(--ink);line-height:1.5;font-style:italic}
+  .review .a{font-size:12px;color:var(--muted);font-weight:800;margin-top:3px}
+  .sheet .deal{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1.5px dashed var(--line);border-radius:16px;padding:13px 15px;margin-bottom:16px}
+  .sheet .deal .dl{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+  .sheet .deal .dp{font-family:var(--font-display);font-weight:600;font-size:20px;display:flex;align-items:center;gap:5px}
+  .sheet .actions{display:flex;flex-direction:column;gap:9px}
+  .escrow{background:var(--surface-2);border-radius:16px;padding:15px;margin-bottom:16px}
+  .escrow .ln{display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:700;padding:5px 0}
+  .escrow .ln.tot{border-top:1.5px solid var(--line);margin-top:4px;padding-top:11px;font-family:var(--font-display);font-weight:600;font-size:16px}
+  .escrow .warn{color:var(--accent-ink);font-weight:800;font-size:13px;text-align:center;margin-top:6px}
+  @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .escrow .warn{color:var(--accent)}}
+  :root[data-theme="dark"] .escrow .warn{color:var(--accent)}
+  .starpick{display:flex;justify-content:center;gap:8px;margin:6px 0 18px}
+  .starpick button{background:none;border:none;font-size:38px;cursor:pointer;line-height:1;filter:grayscale(1);opacity:.4;transition:transform .12s,opacity .12s,filter .12s;padding:0}
+  .starpick button.on{filter:none;opacity:1;transform:scale(1.08)}
+
+  /* ---------- creator ---------- */
+  .charprev{width:150px;height:166px;margin:0 auto;display:block;background:radial-gradient(circle at 50% 42%,var(--surface-2),var(--surface));border-radius:30px;border:1.5px solid var(--line);padding:8px}
+  .picker{margin-bottom:14px}
+  .picker .pl{font-weight:800;font-size:12px;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;margin:0 2px 8px}
+  .swatches{display:flex;gap:8px;flex-wrap:wrap}
+  .sw{width:34px;height:34px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;box-shadow:inset 0 0 0 2px rgba(255,255,255,.5)}
+  .sw[aria-pressed="true"]{border-color:var(--ink);transform:scale(1.08)}
+  .opts{display:flex;gap:8px;flex-wrap:wrap}
+  .opt2{border:1.5px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:12px;padding:8px 13px;font-family:var(--font-display);font-weight:600;font-size:13px;cursor:pointer}
+  .opt2[aria-pressed="true"]{border-color:var(--teal);background:rgba(44,163,151,.1)}
+  .spbtn{width:46px;height:46px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface-2);font-size:24px;cursor:pointer;line-height:1}
+  .spbtn[aria-pressed="true"]{border-color:var(--teal);background:rgba(44,163,151,.12);transform:scale(1.06)}
+
+  /* ---------- toast ---------- */
+  .toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translate(-50%,24px);background:var(--ink);color:var(--surface);
+    padding:13px 20px;border-radius:16px;font-family:var(--font-display);font-weight:600;font-size:14.5px;z-index:90;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.28s;max-width:88%;text-align:center;display:flex;align-items:center;gap:8px}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  /* ---------- gates: auth / verify / create ---------- */
+  .gate{min-height:100%;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:28px max(24px,env(safe-area-inset-left,0px)) 32px max(24px,env(safe-area-inset-right,0px))}
+  .gate.auth{background:radial-gradient(130% 80% at 50% 0%,rgba(44,163,151,.16),transparent 60%)}
+  .gate .logo{width:78px;height:78px;border-radius:26px;background:linear-gradient(155deg,var(--teal),#2f8f84);display:grid;place-items:center;font-size:42px;margin:0 auto 6px;box-shadow:var(--shadow)}
+  .gate h1{font-family:var(--font-display);font-weight:600;font-size:34px;text-align:center;margin:8px 0 2px}
+  .gate .tag{text-align:center;color:var(--muted);font-size:15px;font-weight:600;max-width:17em;margin:0 auto 6px;text-wrap:balance}
+  .gate .scene{display:flex;justify-content:center;gap:4px;font-size:26px;margin:14px 0 22px;opacity:.9}
+  .auth-btns{display:flex;flex-direction:column;gap:10px;max-width:340px;width:100%;margin:0 auto}
+  .auth-btn{display:flex;align-items:center;gap:13px;width:100%;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:16px;padding:14px 16px;font-family:var(--font-display);font-weight:600;font-size:15px;cursor:pointer;box-shadow:var(--shadow-soft);transition:transform .1s;text-align:left}
+  .auth-btn:active{transform:translateY(1px)}
+  .auth-btn .lmark{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:16px;flex:none}
+  .auth-btn .sub{display:block;font-family:var(--font-body);font-weight:700;font-size:11.5px;color:var(--muted);margin-top:1px}
+  .auth-btn .txt{flex:1;min-width:0}
+  .lmark.g{background:#fff;border:1.5px solid #e4e4e4;color:#4285F4;font-family:var(--font-body)}
+  .lmark.a{background:#111;color:#fff}
+  .lmark.f{background:#1877F2;color:#fff;font-family:var(--font-body)}
+  .lmark.m{background:var(--teal);color:#fff;font-size:15px}
+  .lmark.v{background:var(--leaf);color:#fff;font-size:16px}
+  .auth-or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px;font-weight:800;max-width:340px;margin:16px auto 6px;letter-spacing:.05em}
+  .auth-or::before,.auth-or::after{content:"";flex:1;height:1.5px;background:var(--line)}
+  .gate .guest{display:block;margin:16px auto 0;background:none;border:none;color:var(--teal);font-family:var(--font-display);font-weight:600;font-size:14.5px;cursor:pointer}
+  .gate .legal{text-align:center;color:var(--muted);font-size:11.5px;margin:18px auto 0;max-width:22em;line-height:1.5}
+  .vbox{max-width:340px;width:100%;margin:0 auto;background:var(--surface-2);border-radius:16px;padding:14px;font-size:13px;color:var(--muted);font-weight:600;line-height:1.5;text-align:center;margin-bottom:18px}
+  .spinner{width:54px;height:54px;border-radius:50%;border:5px solid var(--line);border-top-color:var(--teal);margin:0 auto 18px;animation:spin .9s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app">
+  <header class="top" hidden>
+    <div class="brand">🍀 clover</div>
+    <div class="hi">
+      <div class="me" id="meAvatar"></div>
+      <div class="who"><div class="k">Good afternoon,</div><div class="n" id="playerName">friend</div></div>
+      <button class="wallet" id="walletBtn"><span>🌱</span><span id="balTop">12</span></button>
+    </div>
+    <div class="loc">📍 Echo Park, LA — <strong style="margin-left:4px">walking distance to 26 neighbors</strong></div>
+  </header>
+  <main class="screen" id="screen"></main>
+  <nav class="nav" id="nav" hidden>
+    <button data-tab="village" aria-pressed="true"><span class="ico"><span class="vico" id="navVico"></span></span>Village</button>
+    <button data-tab="explore"><span class="ico">🧭</span>Explore</button>
+    <button data-tab="post" class="post-btn"><span class="ico">+</span>Post</button>
+    <button data-tab="pacts"><span class="ico">🤝</span>Pacts</button>
+    <button data-tab="chats"><span class="ico">💬</span>Chats</button>
+  </nav>
+</div>
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var CATS={teach:{e:"📚",label:"Lessons",c:"#cfe3f5",ci:"#2f5f87"},food:{e:"🍞",label:"Food",c:"#fbe2c4",ci:"#9a6417"},
+    care:{e:"🧸",label:"Care & kids",c:"#f6d7df",ci:"#9a3f58"},repair:{e:"🔧",label:"Fix-it",c:"#dfdcef",ci:"#51498a"},
+    music:{e:"🎧",label:"Music",c:"#e7d6f0",ci:"#6c3f87"},art:{e:"🎨",label:"Art",c:"#fcdcd0",ci:"#9a4a30"},
+    wellbeing:{e:"🌿",label:"Wellbeing",c:"#cfe9df",ci:"#2f7a6a"},garden:{e:"🌱",label:"Garden",c:"#dde7c4",ci:"#5a7322"},
+    tech:{e:"💻",label:"Tech help",c:"#d2e4ec",ci:"#2f6473"}};
+
+  // ---------- character system (humans + animals) ----------
+  var SPECIES=[{k:"person",e:"🧑"},{k:"cat",e:"🐱"},{k:"dog",e:"🐶"},{k:"bear",e:"🐻"},{k:"rabbit",e:"🐰"},{k:"fox",e:"🦊"},{k:"frog",e:"🐸"},{k:"bird",e:"🐤"}];
+  var SKINS=["#f6d7b0","#f2c79a","#e5ac7d","#cf9262","#a9704a","#875233"];
+  var FURS=["#e8c99a","#c9956a","#8a6240","#6b4a33","#d9d2c6","#f5efe6","#e8923e","#cf6a45","#9aa7ad","#8fbf6a"];
+  var HAIRCOLORS=["#2d2018","#6b4a2b","#b9742e","#d9b34a","#9a9a9a","#d94f4f","#4a6fb0","#8a4fb0"];
+  var HAIRS=["short","long","bun","curly","buzz"];
+  var ACCS=["none","glasses","flower","freckles"];
+
+  function pal(d){return SPECIES[d.species].k==="person"?SKINS:FURS;}
+  function characterSVG(d){
+    var sp=SPECIES[d.species].k, isPerson=sp==="person";
+    var p=isPerson?SKINS:FURS, body=p[d.skin%p.length], accent=HAIRCOLORS[d.haircolor%HAIRCOLORS.length];
+    var shirt="#f08a63"; // overwritten below
+    shirt=["#f08a63","#2ca397","#f0b23e","#6fae4e","#8a6fd0","#d9608a","#4a9fd0"][d.shirt%7];
+    var acc=ACCS[d.acc];
+    var shirtPath='<path d="M12 112 L12 88 Q12 70 32 68 L68 68 Q88 70 88 112 Z" fill="'+shirt+'"/><path d="M40 68 Q50 78 60 68" fill="none" stroke="rgba(0,0,0,.08)" stroke-width="2"/>';
+    var back="",front="",faceSkip=false,extra="";
+    var head='<circle cx="50" cy="46" r="27" fill="'+body+'"/>';
+    if(sp==="person"){
+      back='<circle cx="22" cy="48" r="6" fill="'+body+'"/><circle cx="78" cy="48" r="6" fill="'+body+'"/>';
+      var st=HAIRS[d.hair%HAIRS.length];
+      if(st==="long")back='<rect x="17" y="40" width="11" height="48" rx="5.5" fill="'+accent+'"/><rect x="72" y="40" width="11" height="48" rx="5.5" fill="'+accent+'"/>'+back;
+      if(st==="bun")back='<circle cx="50" cy="15" r="10" fill="'+accent+'"/>'+back;
+      if(st==="curly")front='<g fill="'+accent+'"><circle cx="28" cy="34" r="10"/><circle cx="40" cy="24" r="11"/><circle cx="54" cy="21" r="11"/><circle cx="68" cy="26" r="10"/><circle cx="74" cy="38" r="9"/></g>';
+      else if(st==="buzz")front='<path d="M25 44 C29 24 71 24 75 44 C66 32 34 32 25 44 Z" fill="'+accent+'" opacity=".9"/>';
+      else front='<path d="M22 46 C22 14 78 14 78 46 C68 28 32 28 22 46 Z" fill="'+accent+'"/>';
+    } else if(sp==="cat"){
+      back='<path d="M26 30 L31 9 L45 25 Z" fill="'+body+'"/><path d="M74 30 L69 9 L55 25 Z" fill="'+body+'"/><path d="M31 27 L33 16 L41 25 Z" fill="'+accent+'"/><path d="M69 27 L67 16 L59 25 Z" fill="'+accent+'"/>';
+      front='<path d="M46 53 L54 53 L50 57 Z" fill="#c76a6a"/><g stroke="'+accent+'" stroke-width="1.2" opacity=".55" stroke-linecap="round"><line x1="20" y1="53" x2="35" y2="55"/><line x1="20" y1="58" x2="35" y2="57"/><line x1="80" y1="53" x2="65" y2="55"/><line x1="80" y1="58" x2="65" y2="57"/></g>';
+    } else if(sp==="dog"){
+      back='<ellipse cx="21" cy="50" rx="9" ry="17" fill="'+accent+'"/><ellipse cx="79" cy="50" rx="9" ry="17" fill="'+accent+'"/>';
+      front='<ellipse cx="50" cy="56" rx="12" ry="9" fill="rgba(255,255,255,.5)"/><ellipse cx="50" cy="52" rx="3.6" ry="2.8" fill="#3a2d26"/>';
+    } else if(sp==="bear"){
+      back='<circle cx="29" cy="24" r="10" fill="'+body+'"/><circle cx="71" cy="24" r="10" fill="'+body+'"/><circle cx="29" cy="24" r="5" fill="'+accent+'"/><circle cx="71" cy="24" r="5" fill="'+accent+'"/>';
+      front='<ellipse cx="50" cy="55" rx="10" ry="8" fill="rgba(255,255,255,.45)"/><ellipse cx="50" cy="51" rx="3.4" ry="2.6" fill="#3a2d26"/>';
+    } else if(sp==="rabbit"){
+      back='<ellipse cx="40" cy="12" rx="6.5" ry="20" fill="'+body+'"/><ellipse cx="60" cy="12" rx="6.5" ry="20" fill="'+body+'"/><ellipse cx="40" cy="13" rx="3" ry="14" fill="#f3b6c4"/><ellipse cx="60" cy="13" rx="3" ry="14" fill="#f3b6c4"/>';
+      front='<path d="M47 53 L53 53 L50 57 Z" fill="#e58aa0"/>';
+    } else if(sp==="fox"){
+      back='<path d="M25 30 L29 8 L46 26 Z" fill="'+body+'"/><path d="M75 30 L71 8 L54 26 Z" fill="'+body+'"/><path d="M30 27 L31 16 L40 25 Z" fill="#2d2018"/><path d="M70 27 L69 16 L60 25 Z" fill="#2d2018"/>';
+      front='<path d="M50 42 Q33 54 43 65 Q50 70 57 65 Q67 54 50 42 Z" fill="rgba(255,255,255,.78)"/><path d="M46 55 L54 55 L50 60 Z" fill="#2d2018"/>';
+    } else if(sp==="frog"){
+      body=p[d.skin%p.length];
+      back='<circle cx="35" cy="24" r="11" fill="'+body+'"/><circle cx="65" cy="24" r="11" fill="'+body+'"/>';
+      front='<circle cx="35" cy="23" r="6" fill="#fff"/><circle cx="65" cy="23" r="6" fill="#fff"/><circle cx="35" cy="24" r="3" fill="#222"/><circle cx="65" cy="24" r="3" fill="#222"/>'+
+        '<path d="M36 54 Q50 64 64 54" stroke="#2d6a4a" stroke-width="2.6" fill="none" stroke-linecap="round"/>'+
+        '<circle cx="33" cy="50" r="4.5" fill="#f28ba0" opacity=".45"/><circle cx="67" cy="50" r="4.5" fill="#f28ba0" opacity=".45"/>';
+      faceSkip=true;
+    } else if(sp==="bird"){
+      front='<path d="M46 20 Q50 8 55 20 Z" fill="'+accent+'"/><path d="M43 51 L57 51 L50 60 Z" fill="#f2a93e"/>';
+    }
+    var face=faceSkip?"":'<circle cx="40.5" cy="48" r="3.6" fill="#3a2d26"/><circle cx="59.5" cy="48" r="3.6" fill="#3a2d26"/>'+
+      '<circle cx="34" cy="56" r="5" fill="#f28ba0" opacity=".5"/><circle cx="66" cy="56" r="5" fill="#f28ba0" opacity=".5"/>'+
+      '<path d="M43 57 Q50 63 57 57" stroke="#3a2d26" stroke-width="2.4" fill="none" stroke-linecap="round"/>';
+    if(acc==="glasses")extra='<g fill="none" stroke="#3a2d26" stroke-width="2.2"><circle cx="40.5" cy="48" r="7.5"/><circle cx="59.5" cy="48" r="7.5"/><line x1="48" y1="48" x2="52" y2="48"/></g>';
+    else if(acc==="flower")extra='<g transform="translate(72,24)"><circle cx="0" cy="-5" r="3.4" fill="#ff9ec4"/><circle cx="5" cy="0" r="3.4" fill="#ff9ec4"/><circle cx="-5" cy="0" r="3.4" fill="#ff9ec4"/><circle cx="2.5" cy="4.5" r="3.4" fill="#ff9ec4"/><circle cx="-2.5" cy="4.5" r="3.4" fill="#ff9ec4"/><circle cx="0" cy="0" r="2.6" fill="#f7d24a"/></g>';
+    else if(acc==="freckles")extra='<g fill="#b9745a" opacity=".6"><circle cx="31" cy="54" r="1.1"/><circle cx="35" cy="57" r="1.1"/><circle cx="33" cy="60" r="1.1"/><circle cx="69" cy="54" r="1.1"/><circle cx="65" cy="57" r="1.1"/><circle cx="67" cy="60" r="1.1"/></g>';
+    return '<svg viewBox="0 0 100 114" xmlns="http://www.w3.org/2000/svg">'+shirtPath+back+head+front+face+extra+'</svg>';
+  }
+  function hashStr(s){var h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h;}
+  function charFor(seed){var h=hashStr(seed);return {species:(h>>15)%SPECIES.length,skin:h%FURS.length,haircolor:(h>>3)%HAIRCOLORS.length,hair:(h>>6)%HAIRS.length,shirt:(h>>9)%7,acc:(h>>12)%ACCS.length};}
+  function rnd(n){return Math.floor(Math.random()*n);}
+  function randomChar(){return {species:rnd(SPECIES.length),skin:rnd(FURS.length),haircolor:rnd(HAIRCOLORS.length),hair:rnd(HAIRS.length),shirt:rnd(7),acc:rnd(ACCS.length)};}
+  function cloneChar(c){return {species:c.species,skin:c.skin,haircolor:c.haircolor,hair:c.hair,shirt:c.shirt,acc:c.acc};}
+
+  // ---------- data ----------
+  var ITEMS=[
+    {id:1,type:"offer",cat:"food",name:"Maya",dist:0.4,mx:20,my:24,rating:4.9,reviews:37,title:"Fresh sourdough loaf + a jar of starter",blurb:"Baked this morning. I'll hand over a live starter and teach you to keep it bubbling so you never buy bread again.",review:"The starter is thriving and so am I. Maya even texts to check on it.",revBy:"Theo",cost:3,unit:"loaf"},
+    {id:2,type:"offer",cat:"teach",name:"Dev",dist:0.8,mx:73,my:19,rating:4.8,reviews:21,title:"Beginner guitar lessons",blurb:"We'll get you playing your first three chords and an easy song by the end. Borrow one of mine to start.",review:"Patient and fun — I played a whole song by the second week.",revBy:"Priya",cost:4,unit:"hour"},
+    {id:3,type:"offer",cat:"repair",name:"Theo",dist:0.3,mx:30,my:63,rating:5.0,reviews:48,title:"Bike tune-up & flat repair",blurb:"Brakes, gears, chains, flats. I'll bring the tools to your porch and show you the easy stuff yourself.",review:"Fixed my squeaky brakes in ten minutes and refused extra sprouts. A legend.",revBy:"Grace",cost:3,unit:"bike"},
+    {id:4,type:"offer",cat:"wellbeing",name:"Priya",dist:0.6,mx:82,my:54,rating:4.9,reviews:19,title:"A listening ear over tea",blurb:"Sometimes you just need to be heard. No advice unless you ask for it, no judgment. Tea and a quiet hour.",review:"I left feeling lighter than I had in weeks. Thank you, Priya.",revBy:"Sam",cost:1,unit:"hour"},
+    {id:5,type:"offer",cat:"music",name:"Sam",dist:1.4,mx:15,my:73,rating:4.7,reviews:12,title:"DJ your backyard party",blurb:"Two-hour set, I bring the speakers and lights. Tell me the vibe and I'll build the playlist.",review:"The block party was unreal. Everyone danced, even my dad.",revBy:"Ivy",cost:6,unit:"set"},
+    {id:6,type:"offer",cat:"art",name:"Lena",dist:0.9,mx:86,my:31,rating:5.0,reviews:15,title:"Watercolor portrait of your pet",blurb:"Send me a good photo of your buddy and I'll paint a little A5 portrait. You keep the original.",review:"She captured my cat's grumpy soul perfectly. Framed it immediately.",revBy:"Jun",cost:5,unit:"piece"},
+    {id:7,type:"offer",cat:"care",name:"Omar",dist:0.5,mx:62,my:71,rating:4.9,reviews:33,title:"After-school care & homework help",blurb:"Weekdays 3–6pm. Homework, a snack, and backyard games. References from three families on the block.",review:"My kids ask when Omar is coming back. Reliable and kind.",revBy:"Dana",cost:3,unit:"hour"},
+    {id:8,type:"offer",cat:"garden",name:"Grace",dist:0.7,mx:26,my:44,rating:4.8,reviews:27,title:"Help starting a veggie bed",blurb:"I'll bring seedlings and compost and get your first raised bed planted. We can plan any time.",review:"We have actual tomatoes now. I had never grown anything alive.",revBy:"Beck",cost:3,unit:"visit"},
+    {id:9,type:"offer",cat:"tech",name:"Jun",dist:1.0,mx:79,my:79,rating:4.9,reviews:22,title:"Phone & laptop help",blurb:"Backups, updates, 'why is it slow', new-device setup, scam-proofing for grandparents. Plain-English.",review:"Saved my mom from a phishing text and set up her backups. Priceless.",revBy:"Maya",cost:2,unit:"hour"},
+    {id:10,type:"offer",cat:"food",name:"Pilar",dist:0.6,mx:49,my:14,rating:4.8,reviews:9,title:"Weeknight meal prep",blurb:"Two big trays of something hearty to freeze and reheat. Tell me allergies; containers returned next week.",review:"Three dinners sorted and the lasagna beat any restaurant.",revBy:"Omar",cost:4,unit:"batch"},
+    {id:11,type:"offer",cat:"repair",name:"Hana",dist:1.1,mx:88,my:67,rating:5.0,reviews:14,title:"Clothing mending & alterations",blurb:"Hems, zippers, patches, taking things in. Bring a pile and I'll have it back in a few days.",review:"Rescued my favorite jacket I was about to toss. Invisible stitching.",revBy:"Lena",cost:2,unit:"garment"},
+    {id:17,type:"offer",cat:"repair",name:"Marco",dist:4.2,mx:94,my:91,rating:4.9,reviews:31,title:"Car diagnostics & brake work",blurb:"Worth the trip across town. I read check-engine lights, do brakes and oil, the stuff shops overcharge for. Trade me tutoring for my kids!",review:"Saved me $400 on brakes. We trade his car know-how for math help now.",revBy:"Beck",cost:5,unit:"job"},
+    {id:18,type:"offer",cat:"teach",name:"Tessa",dist:2.8,mx:7,my:90,rating:4.9,reviews:18,title:"SAT & high-school math tutoring",blurb:"Algebra through calculus, plus SAT strategy. A bit of a walk, but I'll meet at the library halfway.",review:"My daughter's score jumped 120 points. Magic with anxious kids.",revBy:"Omar",cost:4,unit:"hour"},
+    {id:12,type:"request",cat:"care",name:"Nico",dist:0.4,mx:40,my:81,rating:4.8,reviews:16,title:"Need a hand moving a couch Saturday",blurb:"Quick 20-minute job, two flights of stairs. Pizza and cold drinks for whoever lends an arm.",cost:2,unit:"job"},
+    {id:13,type:"request",cat:"food",name:"Ivy",dist:0.8,mx:60,my:37,rating:4.9,reviews:11,title:"Have lemons 🍋 → want homemade jam",blurb:"My tree is overflowing. Take as many as you want; I'd love a few jars of jam or marmalade in return.",cost:"barter",unit:""},
+    {id:14,type:"request",cat:"tech",name:"Beck",dist:0.6,mx:47,my:60,rating:4.7,reviews:8,title:"Help building a simple one-page website",blurb:"For our block's little free pantry: hours, a map, a donation list. I can teach sourdough or babysit in trade.",cost:3,unit:"project"},
+    {id:15,type:"pact",cat:"garden",name:"Grace & Nina",dist:0.5,mx:35,my:31,rating:4.9,reviews:14,title:"Plant-watering ↔ dog-walking",blurb:"A standing weekly swap: Nina waters Grace's garden when she travels, Grace walks Biscuit on Nina's long shifts. Open to a third for weekends.",review:"These two have kept my street's gardens and dogs happy for a year.",revBy:"Maya",cost:"pact",unit:""},
+    {id:16,type:"pact",cat:"teach",name:"Luz",dist:0.9,mx:70,my:47,rating:5.0,reviews:20,title:"Spanish ↔ English practice circle",blurb:"Tuesdays & Thursdays, 7pm at the Echo Park library. Half Spanish, half English, all patient. Room for one or two more.",review:"My Spanish went from zero to ordering tacos confidently. Warm group.",revBy:"Dev",cost:"pact",unit:""}
+  ];
+
+  var REPLIES=["So glad you reached out! Yes, let's make it happen. 🌱","Perfect timing — I was hoping someone would ask. When suits you?","Love it. I'm pretty flexible this week, tell me a day.","Yes! Let's sort the details here and lock it in.","Happy to! Thanks for being a good neighbor. 😊"];
+
+  var state={
+    stage:"auth", tab:"village", exView:"list", scope:"walk", filter:"all", selectedPin:null, chatOpen:null, actThread:null,
+    postType:"offer", postCat:"food", postCost:3,
+    player:{name:"Jordan", char:{species:0,skin:1,haircolor:1,hair:0,shirt:1,acc:0}},
+    draftChar:null,
+    items:ITEMS.slice(),
+    village:[
+      {name:"Theo",cat:"repair",char:charFor("Theo"),kind:"app",note:"Tuned up your bike and refused extra sprouts."},
+      {name:"Mina",cat:"art",char:charFor("Mina"),kind:"app",note:"Gave you a fresh haircut last Tuesday."},
+      {name:"Uncle Ray",cat:"repair",char:charFor("Uncle Ray"),kind:"off",note:"Fixes the whole family's cars. Not on Clover yet!"}
+    ],
+    threads:[
+      {id:1,name:"Grace",cat:"garden",itemId:8,role:"client",status:"arranging",msgs:[
+        {me:true,text:"Hi Grace! I'd love help starting a veggie bed. When works?"},
+        {me:false,text:"Yes! I'm free Saturday morning and I'll bring seedlings. 🌱"}]}
+    ],
+    activity:[
+      {ic:"💇",cat:"care",t:"Haircut from Mina",s:"Last Tuesday",amt:-4},
+      {ic:"💻",cat:"tech",t:"You taught a spreadsheet class to Theo",s:"Oct 11",amt:5},
+      {ic:"🌻",cat:"garden",t:"Welcome gift — new neighbor bonus",s:"Joined Oct 1",amt:5}
+    ]
+  };
+  var SCOPES={walk:{max:1.2,label:"🚶 Walkable"},near:{max:3.0,label:"🚲 Nearby"},all:{max:999,label:"🌆 All LA"}};
+
+  var screen=document.getElementById("screen"),topEl=document.querySelector(".top"),navEl=document.getElementById("nav"),
+      toastEl=document.getElementById("toast"),scrim=document.getElementById("scrim"),sheet=document.getElementById("sheet");
+  var toastTimer, threadSeq=2, animId=null, walkers=[], lastTs=0;
+  var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+  function byId(id){for(var i=0;i<state.items.length;i++)if(state.items[i].id===id)return state.items[i];}
+  function first(n){return n.split(/[ &]/)[0];}
+
+  function avatar(it){var cat=CATS[it.cat];var ini=it.name.split(/[ &]/).filter(Boolean).slice(0,2).map(function(w){return w[0];}).join("");
+    return '<div class="avatar" style="background:'+cat.c+';color:'+cat.ci+'">'+esc(ini)+'<span class="badge">'+cat.e+'</span></div>';}
+  function rateHTML(it){return '<span class="rate">⭐ <b>'+it.rating.toFixed(1)+'</b> · '+it.reviews+'</span>';}
+  function priceHTML(it){if(it.cost==="barter")return '<span class="price">🔁 <small>Barter</small></span>';
+    if(it.cost==="pact")return '<span class="price">♾️ <small>Weekly</small></span>';
+    return '<span class="price">'+it.cost+' 🌱'+(it.unit?' <small>/ '+esc(it.unit)+'</small>':'')+'</span>';}
+  function tagHTML(it){var l=it.type==="offer"?"Offering":it.type==="request"?"Looking for":"Pact";return '<span class="tag '+it.type+'">'+l+'</span>';}
+  function cardHTML(it){return '<article class="card" data-id="'+it.id+'"><div class="row">'+avatar(it)+
+    '<div class="body"><div class="meta"><span>'+esc(it.name)+'</span><span class="dot"></span><span>'+(it.dist?it.dist+' mi':'nearby')+'</span><span class="dot"></span>'+rateHTML(it)+'</div>'+
+    '<h3>'+esc(it.title)+'</h3><p>'+esc(it.blurb)+'</p></div></div><div class="foot">'+tagHTML(it)+priceHTML(it)+'</div></article>';}
+  function filterBar(){var h='<div class="chips"><button class="chip" data-filter="all" aria-pressed="'+(state.filter==="all")+'">✨ All</button>';
+    Object.keys(CATS).forEach(function(k){h+='<button class="chip" data-filter="'+k+'" aria-pressed="'+(state.filter===k)+'"><span class="e">'+CATS[k].e+'</span>'+CATS[k].label+'</button>';});return h+'</div>';}
+  function inScope(it){return (it.dist||0)<=SCOPES[state.scope].max;}
+  function listFor(types,useScope){return state.items.filter(function(it){if(types.indexOf(it.type)<0)return false;
+    if(state.filter!=="all"&&it.cat!==state.filter)return false;if(useScope&&it.name!=="You"&&!inScope(it))return false;return true;});}
+  function emptyFeed(m){return '<div class="empty"><span class="e">🍃</span>'+(m||"Nothing here yet.")+'</div>';}
+
+  // ---------- explore (feed + map toggle) ----------
+  function renderExplore(){
+    screen.className="screen";
+    var toggle='<div class="seg"><button data-ex="list" aria-pressed="'+(state.exView==="list")+'">🗂️ List</button><button data-ex="map" aria-pressed="'+(state.exView==="map")+'">🗺️ Map</button></div>';
+    if(state.exView==="map"){
+      screen.innerHTML='<div class="screen-title">Explore Echo Park</div><div class="screen-sub">Tap a pin to peek, then open it. Far corners are a longer trip — worth it for the right trade.</div>'+toggle+filterBar()+mapBlock();
+      if(state.selectedPin){var it=byId(state.selectedPin);if(it)showPreview(it,true);}
+      return;
+    }
+    var scopeBtns=Object.keys(SCOPES).map(function(k){return '<button data-scope="'+k+'" aria-pressed="'+(state.scope===k)+'">'+SCOPES[k].label+'</button>';}).join("");
+    var list=listFor(["offer","request"],true);
+    screen.innerHTML='<div class="screen-title">What’s growing nearby 🌼</div><div class="screen-sub">Offers and asks from neighbors. Start close, reach wider when you need to.</div>'+
+      toggle+'<div class="seg">'+scopeBtns+'</div>'+filterBar()+'<div class="feed">'+(list.length?list.map(cardHTML).join(""):emptyFeed("Nothing in this radius — try widening the distance above."))+'</div>';
+  }
+  function mapBlock(){
+    var pins=state.items.filter(function(it){return it.mx!=null;}).map(function(it){var cat=CATS[it.cat];
+      var dim=(state.filter!=="all"&&it.cat!==state.filter)?" dim":"";
+      return '<button class="pin'+dim+'" data-id="'+it.id+'" aria-pressed="'+(state.selectedPin===it.id)+'" style="left:'+it.mx+'%;top:'+it.my+'%;--pc:'+cat.ci+'"><span class="drop">'+cat.e+'</span></button>';}).join("");
+    return '<div class="mapwrap" id="mapwrap">'+mapSVG()+'<div class="youpin" style="left:50%;top:50%"><span class="ring"></span><span class="lab">You</span></div>'+pins+'<div class="mprev" id="mprev"></div></div>';
+  }
+  function mapSVG(){return '<svg class="base" viewBox="0 0 400 460" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'+
+    '<rect width="400" height="460" fill="var(--map-land)"/>'+
+    '<g fill="var(--map-block)"><rect x="18" y="24" width="120" height="86" rx="12"/><rect x="262" y="30" width="118" height="80" rx="12"/><rect x="20" y="270" width="110" height="100" rx="12"/><rect x="268" y="266" width="116" height="110" rx="12"/></g>'+
+    '<path d="M352 -10 C330 80 410 140 360 220 C320 300 400 360 360 460 L420 460 L420 -10 Z" fill="var(--map-water)"/>'+
+    '<ellipse cx="150" cy="212" rx="34" ry="20" fill="var(--map-water)"/>'+
+    '<g stroke="var(--map-road)" stroke-width="22" stroke-linecap="round"><line x1="-10" y1="140" x2="410" y2="140"/><line x1="-10" y1="262" x2="410" y2="262"/><line x1="-10" y1="390" x2="410" y2="390"/><line x1="150" y1="-10" x2="150" y2="470"/><line x1="300" y1="-10" x2="300" y2="470"/></g>'+
+    '<rect x="178" y="166" width="150" height="110" rx="28" fill="var(--map-park)"/>'+
+    '<g fill="var(--map-tree)"><circle cx="206" cy="196" r="13"/><circle cx="246" cy="186" r="11"/><circle cx="292" cy="200" r="14"/><circle cx="226" cy="240" r="12"/><circle cx="284" cy="248" r="12"/></g></svg>';}
+  function showPreview(it,instant){var mp=document.getElementById("mprev");if(!mp)return;
+    mp.innerHTML=avatar(it)+'<div class="body"><b>'+esc(it.title)+'</b><span>'+esc(it.name)+' · '+it.dist+' mi · ⭐ '+it.rating.toFixed(1)+' · '+(it.cost==="barter"?"Barter":it.cost==="pact"?"Weekly pact":it.cost+" 🌱")+'</span></div><button class="go" data-open="'+it.id+'">View</button>';
+    if(instant)mp.classList.add("show");else requestAnimationFrame(function(){mp.classList.add("show");});}
+
+  function renderPacts(){screen.className="screen";var list=listFor(["pact"],false);
+    screen.innerHTML='<div class="screen-title">Pacts 🤝</div><div class="screen-sub">Standing swaps neighbors keep going together. See one you’d fit into? Ask to join.</div><div class="feed">'+(list.length?list.map(cardHTML).join(""):emptyFeed("No pacts in this category yet."))+'</div>';}
+
+  // ---------- post ----------
+  function renderPost(){
+    screen.className="screen";var cats=Object.keys(CATS);
+    var tl={offer:"share something or a skill",request:"ask for help or a thing you need",pact:"start a standing weekly swap"};
+    var showCost=state.postType!=="pact";
+    screen.innerHTML='<div class="screen-title">Post to the neighborhood</div><div class="screen-sub">Takes a minute. You can edit or take it down any time.</div>'+
+      '<div class="seg" id="seg"><button data-pt="offer" aria-pressed="'+(state.postType==="offer")+'">🎁 Offer</button><button data-pt="request" aria-pressed="'+(state.postType==="request")+'">🙋 Request</button><button data-pt="pact" aria-pressed="'+(state.postType==="pact")+'">🤝 Pact</button></div>'+
+      '<div class="field"><label>I want to '+tl[state.postType]+'</label><input id="pTitle" maxlength="70" placeholder="'+(state.postType==="request"?"e.g. Need help assembling a crib":state.postType==="pact"?"e.g. Morning dog-walk ↔ evening plant-watering":"e.g. Homemade tamales, a dozen")+'"></div>'+
+      '<div class="field"><label>Category</label><div class="catgrid" id="catGrid">'+cats.map(function(k){return '<div class="opt" data-cat="'+k+'" role="button" tabindex="0" aria-pressed="'+(state.postCat===k)+'"><span class="e">'+CATS[k].e+'</span>'+CATS[k].label+'</div>';}).join("")+'</div></div>'+
+      '<div class="field"><label>A little more</label><textarea id="pBlurb" placeholder="When you’re free, what to expect, anything that helps a neighbor say yes."></textarea></div>'+
+      (showCost?'<div class="field"><label>'+(state.postType==="request"?"Sprouts you’ll give":"Sprouts you’d like")+' <span style="font-weight:600;text-transform:none;letter-spacing:0">(≈ 1 per hour — or free)</span></label><div class="steps"><button id="costDown">–</button><div class="v" id="costVal">'+(state.postCost===0?"Free":state.postCost+" 🌱")+'</div><button id="costUp">+</button></div></div>':'<div class="field"><label>How it works</label><div style="background:var(--surface-2);border-radius:14px;padding:13px;color:var(--muted);font-size:13.5px">Pacts are even swaps — no sprouts change hands. Describe what each side does and how often.</div></div>')+
+      '<button class="btn btn-primary" id="postSubmit" style="margin-top:6px">🌱 Post it</button>';
+    document.getElementById("seg").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;state.postType=b.dataset.pt;if(state.postType==="pact")state.postCost=0;else if(state.postCost===0)state.postCost=2;renderPost();});
+    document.getElementById("catGrid").addEventListener("click",function(e){var o=e.target.closest(".opt");if(!o)return;state.postCat=o.dataset.cat;renderPost();});
+    if(showCost){document.getElementById("costUp").onclick=function(){state.postCost=Math.min(12,state.postCost+1);document.getElementById("costVal").textContent=state.postCost+" 🌱";};
+      document.getElementById("costDown").onclick=function(){state.postCost=Math.max(0,state.postCost-1);document.getElementById("costVal").textContent=state.postCost===0?"Free":state.postCost+" 🌱";};}
+    document.getElementById("postSubmit").onclick=submitPost;
+  }
+  function submitPost(){var title=document.getElementById("pTitle").value.trim(),blurb=document.getElementById("pBlurb").value.trim();
+    if(!title){toast("Give your post a title first ✏️");document.getElementById("pTitle").focus();return;}
+    var cost=state.postType==="pact"?"pact":state.postCost;
+    state.items.unshift({id:Date.now(),type:state.postType,cat:state.postCat,name:"You",dist:0,mx:48+Math.random()*8,my:52+Math.random()*8,rating:5.0,reviews:0,title:title,blurb:blurb||"(No details yet)",cost:cost,unit:state.postType==="offer"?"hour":""});
+    state.filter="all";toast("Posted to the neighborhood! 🎉");state.postCost=state.postType==="pact"?0:3;
+    if(state.postType==="pact")setTab("pacts");else{state.exView="list";setTab("explore");}}
+
+  // ---------- animated village ----------
+  function villageBG(){return '<svg class="vbg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'+
+    '<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--sky-top)"/><stop offset="1" stop-color="var(--sky-bot)"/></linearGradient></defs>'+
+    '<rect width="400" height="300" fill="url(#sky)"/>'+
+    '<circle cx="338" cy="46" r="24" fill="#ffe08a" opacity=".85"/>'+
+    '<ellipse cx="90" cy="60" rx="34" ry="16" fill="#ffffff" opacity=".5"/><ellipse cx="250" cy="42" rx="40" ry="18" fill="#ffffff" opacity=".45"/>'+
+    '<path d="M0 150 Q200 120 400 150 L400 300 L0 300 Z" fill="var(--grass-dk)"/>'+
+    '<path d="M0 172 Q200 148 400 172 L400 300 L0 300 Z" fill="var(--grass)"/>'+
+    '<g><rect x="40" y="96" width="62" height="48" rx="6" fill="#e9c08a"/><path d="M34 98 L71 68 L108 98 Z" fill="#d98a5a"/><rect x="62" y="118" width="16" height="26" rx="2" fill="#9a6a3a"/><rect x="46" y="104" width="12" height="12" rx="2" fill="#bfe2e6"/></g>'+
+    '<g><rect x="300" y="100" width="58" height="44" rx="6" fill="#cbdfe9"/><path d="M294 102 L329 74 L364 102 Z" fill="#8fb4c4"/><rect x="320" y="120" width="15" height="24" rx="2" fill="#6a8a9a"/></g>'+
+    '<g><rect x="190" y="110" width="40" height="34" rx="5" fill="#f1ccd6"/><path d="M185 112 L210 90 L235 112 Z" fill="#d98aa6"/></g>'+
+    '<g fill="var(--map-tree)"><circle cx="140" cy="128" r="17"/><circle cx="268" cy="150" r="15"/><circle cx="18" cy="150" r="16"/><circle cx="384" cy="156" r="16"/></g>'+
+    '<rect x="136" y="140" width="8" height="14" fill="#8a6a3a"/><rect x="264" y="162" width="7" height="13" fill="#8a6a3a"/>'+
+    '<path d="M150 300 Q210 220 210 180 Q210 220 290 300" fill="none" stroke="#e7dcc0" stroke-width="16" opacity=".7"/>'+
+    '</svg>';}
+
+  function renderVillage(){
+    screen.className="screen";
+    var app=state.village.filter(function(v){return v.kind==="app";}).length;
+    var off=state.village.filter(function(v){return v.kind==="off";}).length;
+    screen.innerHTML='<div class="vscene" id="vscene"><div class="vbg">'+villageBG()+'</div>'+
+      '<div class="vplate">🍀 '+esc(state.player.name)+'’s village</div>'+
+      '<button class="addfab" id="addFab">＋ Add villager</button></div>'+
+      '<div class="vmeta"><div class="vm"><div class="num">'+state.village.length+'</div><div class="lab">Villagers</div></div>'+
+        '<div class="vm"><div class="num">'+state.balance+' 🌱</div><div class="lab">Sprouts</div></div>'+
+        '<div class="vm"><div class="num">⭐ 4.9</div><div class="lab">Your rating</div></div></div>'+
+      '<div class="screen-sub" style="margin:10px 2px 2px">Everyone you trade with moves in and wanders around. Tap a villager to see who they are. '+app+' from Clover, '+off+' added by you.</div>'+
+      walletBlock();
+    document.getElementById("addFab").onclick=openAddVillager;
+    buildWalkers();
+  }
+  function buildWalkers(){
+    var scene=document.getElementById("vscene");if(!scene)return;
+    walkers=[];
+    var people=state.village.map(function(v,i){return {v:v,vi:i};});
+    people.push({v:{__me:true,char:state.player.char},vi:-1});
+    people.forEach(function(p){
+      var el=document.createElement("button");el.className="walker";
+      el.innerHTML=(p.v.__me?'<span class="crown">👑</span>':'')+characterSVG(p.v.char);
+      if(p.vi>=0)el.setAttribute("data-vi",p.vi);else el.setAttribute("aria-label","You");
+      scene.appendChild(el);
+      var x=10+Math.random()*80,y=58+Math.random()*30;
+      walkers.push({el:el,x:x,y:y,tx:x,ty:y,sp:2.2+Math.random()*2.2,pause:Math.random()*2.5,flip:1,ph:Math.random()*6});
+    });
+    place();
+    if(!reduce){lastTs=0;animId=requestAnimationFrame(tick);}
+  }
+  function place(){walkers.forEach(function(w){w.el.style.left=w.x+"%";w.el.style.top=w.y+"%";w.el.style.transform="translate(-50%,-100%) scaleX("+w.flip+")";w.el.style.zIndex=Math.round(w.y);});}
+  function tick(ts){
+    if(!lastTs)lastTs=ts;var dt=Math.min(0.05,(ts-lastTs)/1000);lastTs=ts;
+    walkers.forEach(function(w){
+      if(w.pause>0){w.pause-=dt;}
+      else{var dx=w.tx-w.x,dy=w.ty-w.y,d=Math.sqrt(dx*dx+dy*dy);
+        if(d<1.2){w.tx=8+Math.random()*84;w.ty=56+Math.random()*32;w.pause=0.6+Math.random()*3;}
+        else{var step=w.sp*dt;w.x+=dx/d*step;w.y+=dy/d*step;w.flip=dx<0?-1:1;}}
+      w.ph+=dt*9;var bob=w.pause>0?0:Math.abs(Math.sin(w.ph))*2.2;
+      w.el.style.left=w.x+"%";w.el.style.top=w.y+"%";
+      w.el.style.transform="translate(-50%,-100%) translateY("+(-bob)+"px) scaleX("+w.flip+")";
+      w.el.style.zIndex=Math.round(w.y);
+    });
+    animId=requestAnimationFrame(tick);
+  }
+  function walletBlock(){
+    var mine=state.items.filter(function(it){return it.name==="You";});
+    return '<div class="balance" style="margin-top:18px"><div class="k">YOUR SPROUTS</div><div class="big">'+state.balance+' <small>🌱 in the bank</small></div><div class="note">Earn by helping, spend on what you need. One sprout ≈ one hour.</div></div>'+
+      '<div class="section-h">🌱 Sprout activity</div><div class="ledger">'+state.activity.map(ledHTML).join("")+'</div>'+
+      '<div class="section-h">📌 Your posts</div>'+(mine.length?'<div class="feed">'+mine.map(cardHTML).join("")+'</div>':'<div class="empty"><span class="e">🌻</span>You haven’t posted yet.<br>Tap + to share something.</div>');
+  }
+  function ledHTML(a){var cat=CATS[a.cat]||{c:"#eee"};return '<div class="led"><div class="ic" style="background:'+cat.c+'">'+a.ic+'</div><div class="t"><b>'+esc(a.t)+'</b><span>'+esc(a.s)+'</span></div><div class="amt '+(a.amt>0?"plus":"minus")+'">'+(a.amt>0?"+":"")+a.amt+' 🌱</div></div>';}
+  function addVillager(name,cat,note,kind){for(var i=0;i<state.village.length;i++)if(state.village[i].name===name)return false;
+    state.village.push({name:name,cat:cat,char:charFor(name+kind),kind:kind,note:note});return true;}
+  function openVillagerSheet(v){showSheet('<div style="text-align:center"><div style="width:120px;height:132px;margin:4px auto 2px">'+characterSVG(v.char)+'</div><h2 style="text-align:center">'+esc(v.name)+'</h2>'+
+    '<div class="sh-meta" style="justify-content:center">'+(v.kind==="off"?"💛 Added by you · not on Clover":CATS[v.cat].e+" "+CATS[v.cat].label+" · a Clover neighbor")+'</div></div>'+
+    '<div class="blurb" style="margin-top:14px">'+esc(v.note)+'</div><div class="actions"><button class="btn btn-ghost" data-close>Close</button></div>');}
+
+  // ---------- add off-app villager ----------
+  function openAddVillager(){
+    state.draftChar=randomChar();
+    var catOpts=Object.keys(CATS).map(function(k){return '<option value="'+k+'">'+CATS[k].e+' '+CATS[k].label+'</option>';}).join("");
+    showSheet('<h2>Add someone to your village 💛</h2><p style="color:var(--muted);font-size:13px;margin:0 0 14px">For people who help you but aren’t on Clover — your car-fixing brother, your tutoring aunt. A private keepsake, just for you.</p>'+
+      '<div class="charprev" id="addPrev">'+characterSVG(state.draftChar)+'</div><div style="text-align:center;margin:10px 0 16px"><button class="opt2" id="addRandom">🎲 Shuffle look</button></div>'+
+      '<div id="addPickers">'+pickerHTML(state.draftChar)+'</div>'+
+      '<div class="field"><label>Their name</label><input id="avName" maxlength="24" placeholder="e.g. Uncle Ray"></div>'+
+      '<div class="field"><label>What do they help with?</label><select id="avCat">'+catOpts+'</select></div>'+
+      '<div class="field"><label>A note (optional)</label><textarea id="avNote" placeholder="e.g. Fixes the whole family’s cars."></textarea></div>'+
+      '<div class="actions"><button class="btn btn-primary" id="avAdd">Add to my village</button><button class="btn btn-ghost" data-close>Cancel</button></div>');
+    sheet.addEventListener("click",sheetPick);sheet._prev="addPrev";sheet._pickers="addPickers";
+    document.getElementById("addRandom").onclick=function(){state.draftChar=randomChar();redrawPickers("addPrev","addPickers");};
+    document.getElementById("avAdd").onclick=function(){var name=document.getElementById("avName").value.trim();
+      if(!name){toast("Give them a name first 💛");document.getElementById("avName").focus();return;}
+      var cat=document.getElementById("avCat").value,note=document.getElementById("avNote").value.trim()||"Someone who helps you out.";
+      state.village.push({name:name,cat:cat,char:cloneChar(state.draftChar),kind:"off",note:note});
+      closeSheet();toast(name+" joined your village 💛");if(state.tab==="village")renderVillage();};
+  }
+  function pickerHTML(d){
+    function row(label,key,arr,isColor){var opts=arr.map(function(val,i){
+      if(isColor)return '<button class="sw" data-pk="'+key+'" data-i="'+i+'" aria-pressed="'+(d[key]===i)+'" style="background:'+val+'" aria-label="'+label+' '+(i+1)+'"></button>';
+      return '<button class="opt2" data-pk="'+key+'" data-i="'+i+'" aria-pressed="'+(d[key]===i)+'">'+val+'</button>';}).join("");
+      return '<div class="picker"><div class="pl">'+label+'</div><div class="'+(isColor?"swatches":"opts")+'">'+opts+'</div></div>';}
+    var isPerson=SPECIES[d.species].k==="person";
+    var species='<div class="picker"><div class="pl">Who are you?</div><div class="opts">'+SPECIES.map(function(s,i){return '<button class="spbtn" data-pk="species" data-i="'+i+'" aria-pressed="'+(d.species===i)+'">'+s.e+'</button>';}).join("")+'</div></div>';
+    return species+row(isPerson?"Skin":"Fur","skin",pal(d),true)+(isPerson?row("Hair","hair",HAIRS,false):"")+row(isPerson?"Hair colour":"Markings","haircolor",HAIRCOLORS,true)+row("Shirt","shirt",["#f08a63","#2ca397","#f0b23e","#6fae4e","#8a6fd0","#d9608a","#4a9fd0"],true)+row("Extra","acc",ACCS,false);
+  }
+  function sheetPick(e){var b=e.target.closest("[data-pk]");if(!b)return;var key=b.getAttribute("data-pk"),i=+b.getAttribute("data-i");
+    if(key==="species")state.draftChar.skin=Math.min(state.draftChar.skin,(SPECIES[i].k==="person"?SKINS:FURS).length-1);
+    state.draftChar[key]=i;redrawPickers(sheet._prev,sheet._pickers);}
+  function redrawPickers(prevId,pickId){var p=document.getElementById(prevId);if(p)p.innerHTML=characterSVG(state.draftChar);
+    var pk=document.getElementById(pickId);if(pk)pk.innerHTML=pickerHTML(state.draftChar);}
+
+  // ---------- chats ----------
+  function getThread(id){for(var i=0;i<state.threads.length;i++)if(state.threads[i].id===id)return state.threads[i];}
+  function startThread(it,role){
+    var ex=null;for(var i=0;i<state.threads.length;i++)if(state.threads[i].itemId===it.id)ex=state.threads[i];
+    if(ex){openThread(ex.id);return;}
+    var opener=role==="client"?("Hi "+first(it.name)+"! I'd love to take you up on “"+it.title+"”. When works?"):
+      role==="provider"?("Hi "+first(it.name)+"! I can help with “"+it.title+"”. When’s good?"):
+      ("Hi "+first(it.name)+"! I’d love to join your pact “"+it.title+"”.");
+    var t={id:threadSeq++,name:it.name,cat:it.cat,itemId:it.id,role:role,status:"arranging",msgs:[{me:true,text:opener}]};
+    state.threads.unshift(t);
+    if(role==="provider"||role==="joiner")addVillager(it.name,it.cat,role==="joiner"?("Pact: "+it.title):("You helped: "+it.title),"app");
+    closeSheet();openThread(t.id);
+    setTimeout(function(){t.msgs.push({me:false,text:REPLIES[rnd(REPLIES.length)]});if(state.chatOpen===t.id)renderThread(t);},750);
+  }
+  function openThread(id){state.chatOpen=id;state.tab="chats";setNav();render();}
+  function renderChats(){
+    screen.className="screen";
+    if(state.chatOpen){var t=getThread(state.chatOpen);if(t){renderThread(t);return;}state.chatOpen=null;}
+    if(!state.threads.length){screen.innerHTML='<div class="screen-title">Chats 💬</div>'+emptyFeed("No conversations yet. Message a neighbor from a listing to arrange a trade.");return;}
+    var rows=state.threads.map(function(t){var it=byId(t.itemId)||{name:t.name,cat:t.cat};var last=t.msgs[t.msgs.length-1];
+      return '<div class="trow" data-thread="'+t.id+'">'+avatar({name:t.name,cat:t.cat})+'<div class="body"><b>'+esc(first(t.name))+'</b><span>'+(last.me?"You: ":"")+esc(last.text)+'</span></div><span class="tstat '+t.status+'">'+t.status+'</span></div>';}).join("");
+    screen.innerHTML='<div class="screen-title">Chats 💬</div><div class="screen-sub">Arrange your trades here. A trade’s status rides along the top of each chat.</div>'+rows;
+  }
+  function renderThread(t){
+    var it=byId(t.itemId)||{title:"a trade",cat:t.cat,name:t.name,cost:0};
+    var bubbles=t.msgs.map(function(m){return '<div class="bub '+(m.sys?"sys":m.me?"me":"them")+'">'+esc(m.text)+'</div>';}).join("");
+    var ctxCost=it.cost==="barter"?"Barter":it.cost==="pact"?"Weekly pact":(typeof it.cost==="number"?it.cost+" 🌱":"");
+    var act="";
+    if(t.status==="arranging"){
+      if(t.role==="client")act=typeof it.cost==="number"?'<button class="btn btn-primary" data-reserve="'+it.id+'">🌱 Reserve '+it.cost+' 🌱 & lock it in</button>':'<button class="btn btn-primary" data-barter="'+it.id+'">🔁 Agree to the barter</button>';
+      else if(t.role==="provider")act='<button class="btn btn-teal" data-done="'+t.id+'">✅ Mark complete & earn'+(typeof it.cost==="number"?" "+it.cost+" 🌱":"")+'</button>';
+      else act='<button class="btn btn-teal" data-done="'+t.id+'">🤝 Confirm the pact</button>';
+    } else if(t.status==="reserved"){
+      act='<button class="btn btn-teal" data-done="'+t.id+'">✅ Mark complete & rate</button>';
+    } else {act='<div style="text-align:center;color:var(--good);font-weight:800;font-size:13px;padding:4px">✓ Trade complete</div>';}
+    screen.innerHTML='<div class="chat"><div class="chat-head"><button class="back" id="chatBack">←</button>'+avatar({name:t.name,cat:t.cat})+
+      '<div class="ti"><b>'+esc(first(t.name))+'</b><span>'+CATS[t.cat].e+' '+CATS[t.cat].label+'</span></div><span class="tstat '+t.status+'">'+t.status+'</span></div>'+
+      '<div class="ctx">💬 About: '+esc(it.title)+(ctxCost?' · '+ctxCost:'')+'</div>'+
+      '<div class="bubbles" id="bubbles">'+bubbles+'</div>'+
+      '<div class="chat-act">'+act+'</div>'+
+      '<div class="chat-input"><textarea id="msgIn" placeholder="Message '+esc(first(t.name))+'…" rows="1"></textarea><button class="send" id="msgSend">➤</button></div></div>';
+    document.getElementById("chatBack").onclick=function(){state.chatOpen=null;render();};
+    document.getElementById("msgSend").onclick=function(){sendMsg(t);};
+    document.getElementById("msgIn").addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMsg(t);}});
+    var b=document.getElementById("bubbles");if(b)b.scrollIntoView&&window.scrollTo(0,document.body.scrollHeight);
+  }
+  function sendMsg(t){var inp=document.getElementById("msgIn");var v=inp.value.trim();if(!v)return;
+    t.msgs.push({me:true,text:v});renderThread(t);
+    setTimeout(function(){t.msgs.push({me:false,text:REPLIES[rnd(REPLIES.length)]});if(state.chatOpen===t.id)renderThread(t);},800);}
+  function pushSys(t,text){t.msgs.push({sys:true,text:text});}
+
+  // ---------- sheets ----------
+  function showSheet(html){sheet.removeEventListener("click",sheetPick);sheet.innerHTML='<div class="grab"></div>'+html;scrim.classList.add("show");sheet.classList.add("show");sheet.scrollTop=0;}
+  function closeSheet(){scrim.classList.remove("show");sheet.classList.remove("show");sheet.removeEventListener("click",sheetPick);}
+  scrim.addEventListener("click",closeSheet);
+
+  function openItemSheet(it){
+    var isMine=it.name==="You";
+    var actLabel=it.type==="offer"?"💬 Message to arrange":it.type==="request"?"💬 Offer to help":"💬 Ask to join";
+    var role=it.type==="offer"?"client":it.type==="request"?"provider":"joiner";
+    var dealLabel=it.cost==="barter"?"Open to a trade":it.cost==="pact"?"Even swap — no sprouts":(it.type==="request"?"You’d earn":"Costs you");
+    var dealVal=it.cost==="barter"?"🔁":it.cost==="pact"?"♾️":it.cost+" 🌱";
+    var dist=it.dist?(it.dist<=1.2?it.dist+" mi · a short walk":it.dist+" mi · a trek, but worth it"):"nearby";
+    var reviewBlock=it.review?'<div class="review"><div style="font-size:22px">💬</div><div><div class="q">“'+esc(it.review)+'”</div><div class="a">— '+esc(it.revBy)+' · ⭐ '+it.rating.toFixed(1)+' from '+it.reviews+' neighbors</div></div></div>':'';
+    var actions=isMine?'<button class="btn btn-ghost" data-close>This is your post · Close</button>':
+      '<button class="btn btn-primary" data-msg="'+it.id+'" data-role="'+role+'">'+actLabel+'</button><button class="btn btn-ghost" data-close>Maybe later</button>';
+    showSheet('<div class="sh-head">'+avatar(it)+'<div><h2>'+esc(it.title)+'</h2><div class="sh-meta"><span>'+esc(it.name)+'</span><span>·</span><span>'+dist+'</span><span>·</span>'+rateHTML(it)+'</div></div></div>'+
+      '<div class="blurb">'+esc(it.blurb)+'</div>'+reviewBlock+
+      '<div class="deal"><span class="dl">'+dealLabel+'</span><span class="dp">'+dealVal+'</span></div>'+
+      '<div class="actions">'+actions+'<p style="color:var(--muted);font-size:12px;text-align:center;margin:4px 2px 0;line-height:1.4">You’ll chat to agree on details first. Sprouts are only reserved once you confirm — and you rate each other after it’s done.</p></div>');
+  }
+  function openConfirm(it){var cost=typeof it.cost==="number"?it.cost:0,after=state.balance-cost,short=after<0;
+    showSheet('<h2 style="margin:2px 0 14px">Confirm & reserve</h2><div class="sh-head" style="margin-bottom:14px">'+avatar(it)+'<div><h2 style="font-size:17px">'+esc(it.title)+'</h2><div class="sh-meta"><span>'+esc(it.name)+'</span><span>·</span>'+rateHTML(it)+'</div></div></div>'+
+      '<div class="escrow"><div class="ln"><span>Your sprouts now</span><span>'+state.balance+' 🌱</span></div><div class="ln"><span>Reserved for '+esc(first(it.name))+'</span><span>'+(cost?'−'+cost+' 🌱':'Barter')+'</span></div><div class="ln tot"><span>Balance after</span><span>'+(short?state.balance:after)+' 🌱</span></div>'+(short?'<div class="warn">Not enough sprouts — earn some by helping a neighbor first 🌱</div>':'')+'</div>'+
+      '<p style="color:var(--muted);font-size:12.5px;text-align:center;margin:0 4px 16px;line-height:1.5">Sprouts are held safely until you both mark it done. Nothing is final yet.</p>'+
+      '<div class="actions"><button class="btn btn-primary" data-reserve2="'+it.id+'"'+(short?' disabled':'')+'>Confirm & reserve'+(cost?' '+cost+' 🌱':'')+'</button><button class="btn btn-ghost" data-close>Back</button></div>');
+  }
+  function doReserve(it){var cost=typeof it.cost==="number"?it.cost:0;if(cost>state.balance)return;
+    state.balance-=cost;if(cost>0)state.activity.unshift({ic:CATS[it.cat].e,cat:it.cat,t:"Reserved: "+it.title+" · "+it.name,s:"Just now",amt:-cost});
+    addVillager(it.name,it.cat,"You got: "+it.title,"app");
+    var t=getThread(state.actThread);if(t){t.status="reserved";pushSys(t,cost>0?("🌱 You reserved "+cost+" sprouts for "+first(it.name)+". Held until you both mark it done."):"🔁 Barter agreed.");}
+    closeSheet();toast(first(it.name)+" moved into your village! 🏡");if(t)renderThread(t);else setTab("village");}
+  function doBarter(it){addVillager(it.name,it.cat,"You got: "+it.title,"app");var t=getThread(state.actThread);
+    if(t){t.status="reserved";pushSys(t,"🔁 Barter agreed. Mark it complete when you’ve swapped.");renderThread(t);}toast(first(it.name)+" moved into your village! 🏡");}
+  function completeThread(t){
+    var it=byId(t.itemId)||{cost:0,name:t.name,cat:t.cat,title:"trade"};
+    if(t.role==="provider"){var reward=typeof it.cost==="number"?it.cost:0;state.balance+=reward;
+      if(reward>0)state.activity.unshift({ic:CATS[it.cat].e,cat:it.cat,t:"Earned: "+it.title+" · "+it.name,s:"Just now",amt:reward});
+      t.status="done";pushSys(t,reward>0?("✅ Complete! You earned "+reward+" 🌱. "+first(it.name)+" rated you ⭐"):"✅ Complete! Thanks for helping.");renderThread(t);
+      toast(reward>0?("You earned "+reward+" 🌱!"):"All done — thanks for helping 🙌");
+    } else if(t.role==="joiner"){t.status="done";pushSys(t,"🤝 Pact on! "+first(it.name)+" is counting on you weekly.");renderThread(t);toast("Pact confirmed 🤝");
+    } else {t.status="done";pushSys(t,"✅ Trade complete! Sprouts released to "+first(it.name)+".");renderThread(t);
+      openRating(it,function(){var tt=getThread(t.id);if(tt&&state.chatOpen===tt.id)renderThread(tt);});}
+  }
+  function openRating(target,onDone){var picked=5;
+    showSheet('<h2 style="text-align:center;margin:2px 0 4px">How was it with '+esc(first(target.name))+'?</h2><p style="color:var(--muted);font-size:13px;text-align:center;margin:0 0 6px">You can only rate neighbors you’ve actually traded with.</p>'+
+      '<div class="starpick" id="starpick">'+[1,2,3,4,5].map(function(n){return '<button data-star="'+n+'" class="'+(n<=picked?"on":"")+'">⭐</button>';}).join("")+'</div>'+
+      '<div class="field"><label>Add a note (optional)</label><textarea id="rNote" placeholder="What made it great? Anything others should know?"></textarea></div>'+
+      '<div class="actions"><button class="btn btn-primary" id="rSubmit">Submit rating</button><button class="btn btn-ghost" data-close>Skip</button></div>');
+    var sp=document.getElementById("starpick");sp.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;picked=+b.dataset.star;
+      Array.prototype.forEach.call(sp.children,function(btn){btn.classList.toggle("on",+btn.dataset.star<=picked);});});
+    document.getElementById("rSubmit").onclick=function(){if(target.reviews!=null){target.reviews+=1;target.rating=Math.round(((target.rating*0.9)+(picked*0.1))*10)/10;}
+      closeSheet();toast("Thanks! You rated "+first(target.name)+" "+"⭐".repeat(picked));if(onDone)onDone();};
+  }
+  function toast(msg){toastEl.textContent=msg;toastEl.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(function(){toastEl.classList.remove("show");},2500);}
+
+  // ---------- events ----------
+  screen.addEventListener("click",function(e){var t=e.target;
+    var open=t.closest("[data-open]");if(open){var io=byId(+open.getAttribute("data-open"));if(io)openItemSheet(io);return;}
+    var pin=t.closest(".pin");if(pin){var id=+pin.dataset.id;state.selectedPin=(state.selectedPin===id?null:id);
+      Array.prototype.forEach.call(screen.querySelectorAll(".pin"),function(p){p.setAttribute("aria-pressed",+p.dataset.id===state.selectedPin);});
+      var mp=document.getElementById("mprev");if(state.selectedPin){var it=byId(state.selectedPin);if(it)showPreview(it);}else if(mp)mp.classList.remove("show");return;}
+    var ex=t.closest("[data-ex]");if(ex){state.exView=ex.getAttribute("data-ex");state.selectedPin=null;renderExplore();return;}
+    var scp=t.closest("[data-scope]");if(scp){state.scope=scp.getAttribute("data-scope");renderExplore();return;}
+    var chip=t.closest(".chip");if(chip){state.filter=chip.dataset.filter;if(state.tab==="explore")renderExplore();else render();return;}
+    var vi=t.closest("[data-vi]");if(vi){var v=state.village[+vi.getAttribute("data-vi")];if(v)openVillagerSheet(v);return;}
+    var th=t.closest("[data-thread]");if(th){openThread(+th.getAttribute("data-thread"));return;}
+    var card=t.closest(".card");if(card){var it2=byId(+card.dataset.id);if(it2)openItemSheet(it2);return;}
+    var done=t.closest("[data-done]");if(done){var dt=getThread(+done.getAttribute("data-done"));if(dt)completeThread(dt);return;}
+    var res=t.closest("[data-reserve]");if(res){var ir=byId(+res.getAttribute("data-reserve"));if(ir){state.actThread=state.chatOpen;openConfirm(ir);}return;}
+    var bar=t.closest("[data-barter]");if(bar){var ib=byId(+bar.getAttribute("data-barter"));if(ib){state.actThread=state.chatOpen;doBarter(ib);}return;}
+  });
+  sheet.addEventListener("click",function(e){var t=e.target;if(t.closest("[data-close]")){closeSheet();return;}
+    var msg=t.closest("[data-msg]");if(msg){var it=byId(+msg.getAttribute("data-msg"));if(it)startThread(it,msg.getAttribute("data-role"));return;}
+    var r2=t.closest("[data-reserve2]");if(r2){var it2=byId(+r2.getAttribute("data-reserve2"));if(it2)doReserve(it2);return;}
+  });
+  navEl.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;if(b.dataset.tab==="chats")state.chatOpen=null;setTab(b.dataset.tab);});
+  document.getElementById("walletBtn").onclick=function(){setTab("village");};
+
+  function setNav(){Array.prototype.forEach.call(navEl.children,function(b){b.setAttribute("aria-pressed",b.dataset.tab===state.tab);});}
+  function setTab(tab){state.tab=tab;if(tab!=="explore")state.filter="all";if(tab!=="explore")state.selectedPin=null;setNav();render();window.scrollTo({top:0,behavior:"instant"});}
+
+  function paintChrome(){document.getElementById("meAvatar").innerHTML=characterSVG(state.player.char);
+    document.getElementById("navVico").innerHTML=characterSVG(state.player.char);
+    document.getElementById("playerName").textContent=state.player.name;document.getElementById("balTop").textContent=state.balance;}
+
+  function render(){
+    if(animId){cancelAnimationFrame(animId);animId=null;}
+    if(state.stage==="auth"){renderAuth();return;}
+    if(state.stage==="verify"){renderVerify();return;}
+    if(state.stage==="create"){renderCreate();return;}
+    topEl.hidden=false;navEl.hidden=false;screen.style.padding="";paintChrome();setNav();
+    if(state.tab==="village")renderVillage();
+    else if(state.tab==="explore")renderExplore();
+    else if(state.tab==="post")renderPost();
+    else if(state.tab==="pacts")renderPacts();
+    else renderChats();
+  }
+
+  // ---------- auth ----------
+  function renderAuth(){topEl.hidden=true;navEl.hidden=true;screen.className="screen";screen.style.padding="0";
+    screen.innerHTML='<div class="gate auth"><div class="logo">🍀</div><h1>Clover</h1><div class="tag">A neighborhood that runs on kindness, not cash.</div>'+
+      '<div class="scene">🏡 🌻 🍞 🎨 🧺 🌱</div><div class="auth-btns">'+
+      '<button class="auth-btn" data-signin="Google"><span class="lmark g">G</span><span class="txt">Continue with Google</span></button>'+
+      '<button class="auth-btn" data-signin="Apple"><span class="lmark a"></span><span class="txt">Continue with Apple</span></button>'+
+      '<button class="auth-btn" data-signin="Facebook"><span class="lmark f">f</span><span class="txt">Continue with Facebook</span></button>'+
+      '<div class="auth-or">or</div><button class="auth-btn" data-signin="email"><span class="lmark m">✉</span><span class="txt">Continue with email</span></button></div>'+
+      '<button class="guest" data-signin="guest">Just looking? Explore first →</button>'+
+      '<div class="legal">By continuing you agree to be a good neighbor — and to our Terms &amp; Community Guidelines.</div></div>';
+    screen.querySelector(".gate").addEventListener("click",function(e){var b=e.target.closest("[data-signin]");if(!b)return;
+      if(b.getAttribute("data-signin")==="guest"){state.stage="app";state.player.char=randomChar();setTab("village");toast("Exploring as a guest 🍀");return;}
+      state.stage="verify";render();});
+  }
+  // ---------- verify ----------
+  function renderVerify(){topEl.hidden=true;navEl.hidden=true;screen.className="screen";screen.style.padding="0";
+    screen.innerHTML='<div class="gate"><div class="logo" style="font-size:36px">🛡️</div><h1 style="font-size:28px">Verify you’re a real neighbor</h1>'+
+      '<div class="tag">One quick check keeps bots and scammers out. We’re confirming you’re a real human — not your paperwork.</div>'+
+      '<div class="vbox">Any one of these works. We accept consular IDs and foreign passports, or no document at all. Pick whatever is easiest for you.</div>'+
+      '<div class="auth-btns">'+
+      '<button class="auth-btn" data-verify="id"><span class="lmark v">🪪</span><span class="txt">Photo ID<span class="sub">Any government, consular, or foreign ID</span></span></button>'+
+      '<button class="auth-btn" data-verify="selfie"><span class="lmark v">🤳</span><span class="txt">Quick selfie check<span class="sub">No documents needed at all</span></span></button>'+
+      '<button class="auth-btn" data-verify="vouch"><span class="lmark v">🤝</span><span class="txt">Get vouched<span class="sub">Have two Clover members confirm you</span></span></button>'+
+      '<button class="auth-btn" data-verify="phone"><span class="lmark v">📱</span><span class="txt">Phone + address<span class="sub">A simple reachable-and-local check</span></span></button></div>'+
+      '<div class="legal">Your ID is used only to confirm you’re real, then deleted. It is never shown to other neighbors.</div></div>';
+    screen.querySelector(".gate").addEventListener("click",function(e){var b=e.target.closest("[data-verify]");if(!b)return;verifying();});
+  }
+  function verifying(){screen.innerHTML='<div class="gate" style="justify-content:center;text-align:center"><div class="spinner"></div>'+
+    '<h1 style="font-size:24px">Checking…</h1><div class="tag">Confirming you’re a real neighbor. This only takes a moment.</div></div>';
+    setTimeout(function(){state.stage="create";state.draftChar=cloneChar(state.player.char);render();toast("You’re verified ✓");},1400);}
+  // ---------- creator ----------
+  function renderCreate(){topEl.hidden=true;navEl.hidden=true;screen.className="screen";screen.style.padding="";
+    screen.innerHTML='<div style="text-align:center;padding-top:6px"><div class="screen-title" style="font-size:24px">Create your villager 🌱</div><div class="screen-sub">Be a person or an animal. This is how neighbors see you — and who lives in your village.</div></div>'+
+      '<div class="charprev" id="createPrev">'+characterSVG(state.draftChar)+'</div><div style="text-align:center;margin:10px 0 16px"><button class="opt2" id="createRandom">🎲 Surprise me</button></div>'+
+      '<div class="field"><label>Your name</label><input id="cName" maxlength="24" value="'+esc(state.player.name)+'" placeholder="What should neighbors call you?"></div>'+
+      '<div id="createPickers">'+pickerHTML(state.draftChar)+'</div>'+
+      '<button class="btn btn-primary" id="createDone" style="margin-top:6px">Enter Clover 🍀</button><button class="btn btn-ghost" id="createSkip" style="margin-top:9px">Skip for now</button>';
+    screen.addEventListener("click",createPick);
+    document.getElementById("createRandom").onclick=function(){state.draftChar=randomChar();redrawPickers("createPrev","createPickers");};
+    document.getElementById("createDone").onclick=finishCreate;document.getElementById("createSkip").onclick=finishCreate;
+  }
+  function createPick(e){var b=e.target.closest("[data-pk]");if(!b)return;var key=b.getAttribute("data-pk"),i=+b.getAttribute("data-i");
+    if(key==="species")state.draftChar.skin=Math.min(state.draftChar.skin,(SPECIES[i].k==="person"?SKINS:FURS).length-1);
+    state.draftChar[key]=i;redrawPickers("createPrev","createPickers");}
+  function finishCreate(){var n=document.getElementById("cName");state.player.name=(n&&n.value.trim())||"You";state.player.char=cloneChar(state.draftChar);
+    screen.removeEventListener("click",createPick);state.stage="app";setTab("village");toast("Welcome to Echo Park 🍀");}
+
+  render();
+})();
+</script>

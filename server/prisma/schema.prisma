@@ -1,0 +1,255 @@
+// Clover — PostgreSQL schema (Amazon RDS / Aurora Serverless v2)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ListingType {
+  OFFER
+  REQUEST
+  PACT
+}
+
+enum Category {
+  TEACH
+  FOOD
+  CARE
+  REPAIR
+  MUSIC
+  ART
+  WELLBEING
+  GARDEN
+  TECH
+}
+
+enum CostType {
+  SPROUTS
+  BARTER
+  PACT
+  FREE
+}
+
+enum ThreadRole {
+  CLIENT
+  PROVIDER
+  JOINER
+}
+
+enum ThreadStatus {
+  ARRANGING
+  RESERVED
+  DONE
+  CANCELLED
+}
+
+enum MessageKind {
+  USER
+  SYSTEM
+}
+
+enum TxnKind {
+  GRANT
+  RESERVE
+  RELEASE
+  EARN
+  REFUND
+}
+
+enum VillagerKind {
+  APP
+  OFF
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWED
+  ACTIONED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  passwordHash String?
+  provider     String   @default("email") // email | google | apple | facebook | cognito
+  verified     Boolean  @default(false)
+  verifyMethod String?
+  balance      Int      @default(12) // welcome grant of sprouts
+  rating       Float    @default(5)
+  reviews      Int      @default(0)
+  charLook     Json // CharacterLook: { species, skin, haircolor, hair, shirt, acc }
+  lat          Float?
+  lng          Float?
+  neighborhood String?
+  createdAt    DateTime @default(now())
+
+  listings       Listing[]
+  villagers      Villager[]     @relation("VillageOwner")
+  notifications  Notification[]
+  devices        Device[]
+  transactions   Transaction[]
+  threadsStarted Thread[]       @relation("ThreadStarter")
+  threadsOther   Thread[]       @relation("ThreadOther")
+  messages       Message[]
+  ratingsGiven   Rating[]       @relation("RatingRater")
+  ratingsGot     Rating[]       @relation("RatingRatee")
+  blocksMade     Block[]        @relation("Blocker")
+  blockedBy      Block[]        @relation("Blocked")
+  reportsMade    Report[]       @relation("Reporter")
+  reportsAbout   Report[]       @relation("ReportTarget")
+}
+
+model Listing {
+  id        String      @id @default(uuid())
+  author    User        @relation(fields: [authorId], references: [id])
+  authorId  String
+  type      ListingType
+  category  Category
+  title     String
+  blurb     String
+  costType  CostType    @default(SPROUTS)
+  cost      Int? // sprouts; null for BARTER / PACT / FREE
+  unit      String      @default("")
+  photoUrl  String?
+  lat       Float?
+  lng       Float?
+  rating    Float       @default(5)
+  reviews   Int         @default(0)
+  active    Boolean     @default(true)
+  createdAt DateTime    @default(now())
+
+  threads Thread[]
+
+  @@index([type, category, active])
+}
+
+model Thread {
+  id        String       @id @default(uuid())
+  listing   Listing      @relation(fields: [listingId], references: [id])
+  listingId String
+  starter   User         @relation("ThreadStarter", fields: [starterId], references: [id])
+  starterId String
+  other     User         @relation("ThreadOther", fields: [otherId], references: [id])
+  otherId   String
+  role      ThreadRole // role of the starter relative to the listing
+  status    ThreadStatus @default(ARRANGING)
+  escrow    Int          @default(0) // sprouts held
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  messages Message[]
+  ratings  Rating[]
+
+  @@index([starterId])
+  @@index([otherId])
+}
+
+model Message {
+  id        String      @id @default(uuid())
+  thread    Thread      @relation(fields: [threadId], references: [id])
+  threadId  String
+  sender    User?       @relation(fields: [senderId], references: [id])
+  senderId  String?
+  kind      MessageKind @default(USER)
+  text      String
+  createdAt DateTime    @default(now())
+
+  @@index([threadId])
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  amount    Int // signed: +earn/grant/release-in, -reserve/spend
+  kind      TxnKind
+  threadId  String?
+  listingId String?
+  note      String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Villager {
+  id        String       @id @default(uuid())
+  owner     User         @relation("VillageOwner", fields: [ownerId], references: [id])
+  ownerId   String
+  kind      VillagerKind @default(APP)
+  name      String
+  category  Category
+  note      String       @default("")
+  charLook  Json
+  refUserId String? // the Clover user this villager represents, when kind = APP
+  createdAt DateTime     @default(now())
+
+  @@index([ownerId])
+}
+
+model Rating {
+  id        String   @id @default(uuid())
+  rater     User     @relation("RatingRater", fields: [raterId], references: [id])
+  raterId   String
+  ratee     User     @relation("RatingRatee", fields: [rateeId], references: [id])
+  rateeId   String
+  thread    Thread   @relation(fields: [threadId], references: [id])
+  threadId  String
+  stars     Int
+  note      String   @default("")
+  createdAt DateTime @default(now())
+
+  @@unique([raterId, threadId]) // one rating per person per trade
+}
+
+model Block {
+  id        String   @id @default(uuid())
+  user      User     @relation("Blocker", fields: [userId], references: [id])
+  userId    String
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id])
+  blockedId String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, blockedId])
+}
+
+model Report {
+  id        String       @id @default(uuid())
+  reporter  User         @relation("Reporter", fields: [reporterId], references: [id])
+  reporterId String
+  target    User         @relation("ReportTarget", fields: [targetId], references: [id])
+  targetId  String
+  listingId String?
+  reason    String
+  details   String       @default("")
+  status    ReportStatus @default(OPEN)
+  createdAt DateTime     @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  icon      String   @default("🔔")
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+}
+
+model Device {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  token     String // Expo push token, APNs/FCM token, or Web Push subscription JSON
+  platform  String // ios | android | web
+  snsArn    String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, token])
+}
