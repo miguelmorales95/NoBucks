@@ -135,7 +135,8 @@ export interface AdminOverview {
 
 export interface Goal { id: string; label: string; icon: string; target: number; progress: number; }
 export interface Circle { id: string; name: string; emoji: string; members: string[]; }
-export interface VillageCard { id: string; name: string; char: CharacterLook; villageName: string; villagers: number; neighborhood?: string; flavor: string; }
+export type CardTheme = "stadium" | "cafe" | "arcade" | "beach" | "garden" | "cosmic";
+export interface VillageCard { id: string; name: string; char: CharacterLook; villageName: string; villagers: number; neighborhood?: string; flavor: string; theme?: CardTheme; }
 export interface Sticker { id: string; emoji: string; from: string; }
 export interface Weather {
   season: "spring" | "summer" | "fall" | "winter";

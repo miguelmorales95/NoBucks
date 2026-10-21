@@ -2,6 +2,7 @@ import { useStore } from "../store";
 import { Character, charFor } from "../character";
 import { CATS } from "../data";
 import { VillageScene } from "../components/VillageScene";
+import { CardArt, themeFor, rarityFor, RARITY_LABEL } from "../components/CardArt";
 import type { Cat, VillageCard, Villager } from "../types";
 
 function BackHeader({ title }: { title: string }) {
@@ -15,15 +16,21 @@ function BackHeader({ title }: { title: string }) {
 }
 
 function VCard({ card, big }: { card: VillageCard; big?: boolean }) {
+  const theme = card.theme ?? themeFor(card.name);
+  const rarity = rarityFor(card.villagers);
   return (
-    <div className={"vcard" + (big ? " big" : "")}>
-      <div className="vcard-char"><Character look={card.char} /></div>
-      <div className="vcard-body">
+    <div className={`vcard theme-${theme} rarity-${rarity}` + (big ? " big" : "")}>
+      <span className="vcard-hole" />
+      <CardArt theme={theme} villagers={card.villagers} />
+      <div className="vcard-actor"><Character look={card.char} /></div>
+      <div className="vcard-plate">
         <b>{card.villageName}</b>
-        <span>{card.name}{card.neighborhood ? ` · 🏘️ ${card.neighborhood}` : ""}</span>
+        <span className="vcard-sub">{card.name}{card.neighborhood ? ` · 🏘️ ${card.neighborhood}` : ""}</span>
         <span className="vcard-flavor">{card.flavor}</span>
-        <span className="vcard-stat">🏡 {card.villagers} villagers</span>
       </div>
+      <span className="vcard-rarity">{RARITY_LABEL[rarity]}</span>
+      <span className="vcard-foil" />
+      <span className="vcard-glare" />
     </div>
   );
 }
