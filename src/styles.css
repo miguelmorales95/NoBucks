@@ -445,6 +445,10 @@ input[type="range"].slider:focus-visible{outline:3px solid rgba(44,163,151,.4)}
 @keyframes twinkle{0%,100%{opacity:.35}50%{opacity:1}}
 @media (prefers-reduced-motion:reduce){.vcard-foil,.vcard-glare,.rarity-legendary .vcard-foil::after{animation:none}}
 
+/* card editor theme picker */
+.cardthemes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cardthemes .opt2{width:100%;text-align:center;padding:9px 6px}
+
 /* stickers */
 .stickergrid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
 .stickercell{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r-md);padding:12px 4px;text-align:center;box-shadow:var(--shadow-soft)}

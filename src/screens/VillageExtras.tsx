@@ -3,7 +3,7 @@ import { Character, charFor } from "../character";
 import { CATS } from "../data";
 import { VillageScene } from "../components/VillageScene";
 import { CardArt, themeFor, rarityFor, RARITY_LABEL } from "../components/CardArt";
-import type { Cat, VillageCard, Villager } from "../types";
+import type { Cat, CardTheme, CharacterLook, VillageCard, Villager } from "../types";
 
 function BackHeader({ title }: { title: string }) {
   const { actions } = useStore();
@@ -15,14 +15,31 @@ function BackHeader({ title }: { title: string }) {
   );
 }
 
-function VCard({ card, big }: { card: VillageCard; big?: boolean }) {
+type PlayerCardFields = { name: string; char: CharacterLook; neighborhood: string; cardTheme?: CardTheme; cardFlavor?: string; cardActorX?: number };
+
+/** Build the player's own village card from their profile + current village size. */
+export function myCard(player: PlayerCardFields, villagers: number): VillageCard {
+  return {
+    id: "mine",
+    name: player.name,
+    char: player.char,
+    villageName: `${player.name}’s Village`,
+    villagers,
+    neighborhood: player.neighborhood,
+    flavor: player.cardFlavor?.trim() || "That’s you! 🍀",
+    theme: player.cardTheme,
+    actorX: player.cardActorX,
+  };
+}
+
+export function VCard({ card, big }: { card: VillageCard; big?: boolean }) {
   const theme = card.theme ?? themeFor(card.name);
   const rarity = rarityFor(card.villagers);
   return (
     <div className={`vcard theme-${theme} rarity-${rarity}` + (big ? " big" : "")}>
       <span className="vcard-hole" />
       <CardArt theme={theme} villagers={card.villagers} />
-      <div className="vcard-actor"><Character look={card.char} /></div>
+      <div className="vcard-actor" style={card.actorX != null ? { left: card.actorX + "%" } : undefined}><Character look={card.char} /></div>
       <div className="vcard-plate">
         <b>{card.villageName}</b>
         <span className="vcard-sub">{card.name}{card.neighborhood ? ` · 🏘️ ${card.neighborhood}` : ""}</span>
@@ -117,13 +134,14 @@ export function StickerBinder() {
 }
 
 export function CardBinder() {
-  const { state } = useStore();
-  const my: VillageCard = { id: "mine", name: state.player.name, char: state.player.char, villageName: `${state.player.name}’s Village`, villagers: state.village.length, neighborhood: state.player.neighborhood, flavor: "That’s you! 🍀" };
+  const { state, actions } = useStore();
+  const my = myCard(state.player, state.village.length);
   return (
     <>
       <BackHeader title="Card binder 🃏" />
       <div className="section-h">Your card</div>
       <VCard card={my} big />
+      <button className="btn btn-teal" style={{ margin: "2px 0 4px" }} onClick={() => actions.openSheet({ kind: "editCard" })}>✏️ Edit my card</button>
       <div className="section-h">Collected ({state.cards.length})</div>
       {state.cards.length ? <div className="feed">{state.cards.map((c) => <VCard key={c.id} card={c} />)}</div> : <div className="empty"><span className="e">🃏</span>Swap cards when you visit villages.</div>}
     </>

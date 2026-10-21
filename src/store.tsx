@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useReducer, useRef, type ReactNode } from "react";
 import type {
-  Activity, AdminOverview, AdminReport, Circle, CharacterLook, Cat, EventItem, ExView, Goal, Gratitude, Listing, Notif, Sheet, Stage, Sticker, Tab, Thread, ThreadRole, VillageCard, VillageView, Villager, Weather,
+  Activity, AdminOverview, AdminReport, Circle, CharacterLook, Cat, CardTheme, EventItem, ExView, Goal, Gratitude, Listing, Notif, Sheet, Stage, Sticker, Tab, Thread, ThreadRole, VillageCard, VillageView, Villager, Weather,
 } from "./types";
 import { CATS, DIST, REPLIES, SEED_ITEMS, HOME_HOOD, SPROUT_CAP, POT_SEED, SEED_GRATITUDES, SEED_EVENTS, SEED_REPORTS, SEED_GOALS, SEED_CIRCLES, SEED_STICKERS, CIRCLE_EMOJI, OUTFITS, HATS, DEFAULT_WARDROBE } from "./data";
 
@@ -24,7 +24,7 @@ interface State {
   sheet: Sheet; toastMsg: string; toastKey: number;
   apiMode: boolean; meId: string | null;
   balance: number;
-  player: { name: string; char: CharacterLook; neighborhood: string; role: "member" | "leader"; villageTheme: string };
+  player: { name: string; char: CharacterLook; neighborhood: string; role: "member" | "leader"; villageTheme: string; cardTheme?: CardTheme; cardFlavor?: string; cardActorX?: number };
   wardrobe: string[];
   draft: CharacterLook;
   items: Listing[]; village: Villager[]; threads: Thread[]; activity: Activity[];
@@ -126,6 +126,7 @@ export interface Actions {
   setWeather(w: Weather): void;
   setVillageTheme(theme: string): void;
   setLook(look: CharacterLook): void;
+  editCard(patch: { theme?: CardTheme; flavor?: string; actorX?: number }): void;
 }
 
 interface Store { state: State; actions: Actions; }
@@ -562,6 +563,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setWeather(w) { s.weather = w; bump(); },
       setVillageTheme(theme) { s.player.villageTheme = theme; toast("Village theme updated 🎨"); if (API) api.updateMe({ villageTheme: theme }).catch(() => {}); bump(); },
       setLook(look) { s.player.char = look; s.sheet = null; toast("New look! 👕"); if (API) api.updateMe({ char: look as any }).catch(() => {}); bump(); },
+      editCard(patch) {
+        if (patch.theme !== undefined) s.player.cardTheme = patch.theme;
+        if (patch.flavor !== undefined) s.player.cardFlavor = patch.flavor;
+        if (patch.actorX !== undefined) s.player.cardActorX = patch.actorX;
+        s.sheet = null; toast("Card saved 🃏");
+        if (API) api.updateMe({ cardTheme: s.player.cardTheme, cardFlavor: s.player.cardFlavor, cardActorX: s.player.cardActorX } as any).catch(() => {});
+        bump();
+      },
     };
   }, [s]);
 

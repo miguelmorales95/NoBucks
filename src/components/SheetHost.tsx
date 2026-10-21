@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useStore, firstName } from "../store";
-import type { Listing, Sheet, ThreadRole, CharacterLook, Cat, EventItem } from "../types";
+import type { Listing, Sheet, ThreadRole, CharacterLook, Cat, CardTheme, EventItem, VillageCard } from "../types";
 import { CATS, CAT_KEYS, STICKERS } from "../data";
 import { Character, randomChar, cloneChar } from "../character";
 import { CharacterBuilder } from "./CharacterBuilder";
 import { Avatar, RateBadge, PhotoBanner } from "./listing";
+import { VCard } from "../screens/VillageExtras";
+import { CARD_THEMES, CARD_THEME_LABELS, themeFor } from "./CardArt";
 
 export function SheetHost() {
   const { state, actions } = useStore();
@@ -35,6 +37,7 @@ function SheetBody({ sheet }: { sheet: NonNullable<Sheet> }) {
     case "createEvent": return <CreateEventSheet />;
     case "sticker": return <StickerSheet toName={sheet.toName} />;
     case "wardrobe": return <WardrobeSheet />;
+    case "editCard": return <EditCardSheet />;
     default: return null;
   }
 }
@@ -50,6 +53,52 @@ function WardrobeSheet() {
       <div style={{ marginTop: 14 }}><CharacterBuilder look={look} onChange={setLook} wardrobe={state.wardrobe} /></div>
       <div className="actions">
         <button className="btn btn-primary" onClick={() => actions.setLook(look)}>Save look</button>
+        <button className="btn btn-ghost" onClick={actions.closeSheet}>Cancel</button>
+      </div>
+    </>
+  );
+}
+
+// Sensible default character position per theme (mirrors the CSS defaults in styles.css).
+const THEME_ACTOR_X: Record<CardTheme, number> = { stadium: 15, cafe: 26, beach: 17, garden: 13, arcade: 8, cosmic: 8 };
+
+function EditCardSheet() {
+  const { state, actions } = useStore();
+  const p = state.player;
+  const initTheme = p.cardTheme ?? themeFor(p.name);
+  const [theme, setTheme] = useState<CardTheme>(initTheme);
+  const [flavor, setFlavor] = useState(p.cardFlavor ?? "");
+  const [actorX, setActorX] = useState<number>(p.cardActorX ?? THEME_ACTOR_X[initTheme]);
+
+  const preview: VillageCard = {
+    id: "preview", name: p.name, char: p.char, villageName: `${p.name}’s Village`,
+    villagers: state.village.length, neighborhood: p.neighborhood,
+    flavor: flavor.trim() || "That’s you! 🍀", theme, actorX,
+  };
+  const pickTheme = (t: CardTheme) => { setTheme(t); if (p.cardActorX == null) setActorX(THEME_ACTOR_X[t]); };
+
+  return (
+    <>
+      <h2>Edit your card 🃏</h2>
+      <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 14px" }}>
+        Make it yours — pick a scene, write your tagline, and slide your character into place.
+      </p>
+      <VCard card={preview} big />
+      <div className="field" style={{ marginTop: 14 }}><label>Scene</label>
+        <div className="cardthemes">
+          {CARD_THEMES.map((t) => (
+            <button key={t} className="opt2" aria-pressed={t === theme} onClick={() => pickTheme(t)}>{CARD_THEME_LABELS[t]}</button>
+          ))}
+        </div>
+      </div>
+      <div className="field"><label>Tagline</label>
+        <input value={flavor} maxLength={40} placeholder="e.g. Sourdough sorceress 🍞" onChange={(e) => setFlavor(e.target.value)} /></div>
+      <div className="field"><label>Character position ← →</label>
+        <input className="slider" type="range" min={2} max={60} value={actorX}
+          style={{ ["--pct" as string]: ((actorX - 2) / 58 * 100).toFixed(0) + "%" }}
+          onChange={(e) => setActorX(Number(e.target.value))} /></div>
+      <div className="actions">
+        <button className="btn btn-primary" onClick={() => actions.editCard({ theme, flavor: flavor.trim(), actorX })}>Save card</button>
         <button className="btn btn-ghost" onClick={actions.closeSheet}>Cancel</button>
       </div>
     </>
