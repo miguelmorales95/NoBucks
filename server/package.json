@@ -1,8 +1,8 @@
 {
-  "name": "clover-server",
+  "name": "nobucks-server",
   "private": true,
   "version": "0.1.0",
-  "description": "Clover backend API — Express + Prisma + PostgreSQL (AWS).",
+  "description": "NoBucks backend API — Express + Prisma + PostgreSQL (AWS).",
   "type": "commonjs",
   "scripts": {
     "dev": "tsx watch src/index.ts",

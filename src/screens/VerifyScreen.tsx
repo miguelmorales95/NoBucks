@@ -4,7 +4,7 @@ import { useStore } from "../store";
 const METHODS = [
   { icon: "🪪", title: "Photo ID", sub: "Any government, consular, or foreign ID" },
   { icon: "🤳", title: "Quick selfie check", sub: "No documents needed at all" },
-  { icon: "🤝", title: "Get vouched", sub: "Have two Clover members confirm you" },
+  { icon: "🤝", title: "Get vouched", sub: "Have two NoBucks members confirm you" },
   { icon: "📱", title: "Phone + address", sub: "A simple reachable-and-local check" },
 ];
 

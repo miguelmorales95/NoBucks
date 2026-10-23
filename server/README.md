@@ -1,12 +1,12 @@
-# Clover API
+# NoBucks API
 
-The backend for Clover: **Node + TypeScript + Express + Prisma**, backed by **PostgreSQL** and
+The backend for NoBucks: **Node + TypeScript + Express + Prisma**, backed by **PostgreSQL** and
 deployed on **AWS**. It handles accounts, verification, listings, photo uploads, messaging, the
 sprout economy (escrow + ledger), ratings, the village, moderation, and notifications.
 
 ## Why PostgreSQL (not DynamoDB)
 
-Clover moves credits between people with escrow, releases, and refunds, and reads relational feeds
+NoBucks moves credits between people with escrow, releases, and refunds, and reads relational feeds
 (by distance, category, author, rating). That's a transactional, relational workload, so a SQL
 database with ACID transactions is the right fit. On AWS that means **Amazon RDS for PostgreSQL**,
 or **Aurora Serverless v2 (PostgreSQL)** if you want it to scale to zero between bursts.
@@ -26,8 +26,8 @@ npm run dev                     # http://localhost:4000/health
 You need a Postgres instance. Fastest local option:
 
 ```bash
-docker run --name clover-pg -e POSTGRES_PASSWORD=password -e POSTGRES_DB=clover -p 5432:5432 -d postgres:16
-# DATABASE_URL=postgresql://postgres:password@localhost:5432/clover?schema=public
+docker run --name nobucks-pg -e POSTGRES_PASSWORD=password -e POSTGRES_DB=nobucks -p 5432:5432 -d postgres:16
+# DATABASE_URL=postgresql://postgres:password@localhost:5432/nobucks?schema=public
 ```
 
 ## API surface
@@ -67,8 +67,8 @@ All routes except `register`/`login` require `Authorization: Bearer <token>`.
 **API — App Runner (simplest) or ECS Fargate**
 ```bash
 # Build & push the image to ECR, then point App Runner / ECS at it.
-aws ecr create-repository --repository-name clover-api
-docker build -t clover-api ./server
+aws ecr create-repository --repository-name nobucks-api
+docker build -t nobucks-api ./server
 # docker tag + docker push to the ECR URI, then create an App Runner service from that image.
 ```
 - Give the service an **IAM role** with `s3:PutObject`/`GetObject` on the bucket (and `sns:Publish`

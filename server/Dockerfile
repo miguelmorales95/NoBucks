@@ -1,4 +1,4 @@
-# Clover API — container image for AWS App Runner / ECS Fargate
+# NoBucks API — container image for AWS App Runner / ECS Fargate
 FROM node:20-slim AS build
 WORKDIR /app
 # openssl is required by Prisma

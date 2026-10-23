@@ -55,7 +55,7 @@ function initialState(): State {
     village: [
       { name: "Theo", cat: "repair", char: charFor("Theo"), kind: "app", note: "Tuned up your bike and refused extra sprouts.", trust: "green" },
       { name: "Mina", cat: "art", char: charFor("Mina"), kind: "app", note: "Gave you a fresh haircut last Tuesday.", trust: "green" },
-      { name: "Uncle Ray", cat: "repair", char: charFor("Uncle Ray"), kind: "off", note: "Fixes the whole family's cars. Not on Clover yet!", trust: "yellow" },
+      { name: "Uncle Ray", cat: "repair", char: charFor("Uncle Ray"), kind: "off", note: "Fixes the whole family's cars. Not on NoBucks yet!", trust: "yellow" },
     ],
     threads: [
       { id: "seed-1", name: "Grace", cat: "garden", itemId: "8", role: "client", status: "arranging", msgs: [
@@ -70,7 +70,7 @@ function initialState(): State {
     ],
     notifications: [
       { id: "n2", icon: "💬", title: "Grace replied", body: "Yes! I'm free Saturday morning and I'll bring seedlings.", read: false },
-      { id: "n1", icon: "🌱", title: "Welcome to Clover", body: "You've got 12 sprouts to start. Say hi to a neighbor!", read: false },
+      { id: "n1", icon: "🌱", title: "Welcome to NoBucks", body: "You've got 12 sprouts to start. Say hi to a neighbor!", read: false },
     ],
     blocked: [],
     communityPot: POT_SEED, gratitudes: SEED_GRATITUDES as Gratitude[],
@@ -197,7 +197,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!g || g.progress >= g.target) return;
       g.progress++;
       if (g.progress >= g.target) {
-        s.stickers.unshift({ id: uid(), emoji: "🏅", from: "Clover goals" });
+        s.stickers.unshift({ id: uid(), emoji: "🏅", from: "NoBucks goals" });
         (GOAL_REWARD[id] ?? []).forEach(unlock);
         toast(`Goal complete: ${g.label} 🏅`);
       }
@@ -259,7 +259,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       signIn(guest) {
         // Demo sign-in (also used for "explore as guest" in API mode).
         s.stage = guest || !API ? (guest ? "app" : "verify") : "verify";
-        if (guest) { s.player.char = randomChar(); s.tab = "village"; toast("Exploring as a guest 🍀"); }
+        if (guest) { s.player.char = randomChar(); s.tab = "village"; toast("Exploring as a guest 🌱"); }
         bump();
       },
       apiAuth(b) {
@@ -287,7 +287,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const look = cloneChar(s.draft); const nm = name.trim() || "You";
         if (API) {
           (async () => { try { await bootstrap(); } catch (e) { fail(e); } s.player = { name: nm, char: look, neighborhood: s.player.neighborhood, role: s.player.role, villageTheme: s.player.villageTheme }; try { await api.updateMe({ char: look as any, wardrobe: s.wardrobe }); } catch { /* ignore */ } s.stage = "app"; s.tab = "village"; bump(); })();
-        } else { s.player = { name: nm, char: look, neighborhood: s.player.neighborhood, role: s.player.role, villageTheme: s.player.villageTheme }; s.stage = "app"; s.tab = "village"; toast("Welcome to Echo Park 🍀"); }
+        } else { s.player = { name: nm, char: look, neighborhood: s.player.neighborhood, role: s.player.role, villageTheme: s.player.villageTheme }; s.stage = "app"; s.tab = "village"; toast("Welcome to Echo Park 🌱"); }
       },
 
       openSheet(sheet) { s.sheet = sheet; bump(); },
@@ -540,7 +540,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         s.sheet = null;
         toast(`You sent ${emoji} to ${firstName(toName)}!`);
         window.setTimeout(() => {
-          const back = ["🌻", "💛", "✨", "🍀", "🫶"][Math.floor(Math.random() * 5)];
+          const back = ["🌻", "💛", "✨", "🌱", "🫶"][Math.floor(Math.random() * 5)];
           s.stickers.unshift({ id: uid(), emoji: back, from: firstName(toName) });
           notify("✨", `${firstName(toName)} sent you a sticker`, "Open your sticker binder to see it.");
         }, 900);

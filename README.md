@@ -1,4 +1,6 @@
-# Clover 🍀
+# NoBucks 🌱
+
+> Formerly **Clover**. The currency is still **sprouts**. Character species deliberately include no deer (no "bucks" in a no-bucks town).
 
 A hyperlocal, cashless community app for LA neighborhoods, styled cozy like Animal Crossing.
 Neighbors trade skills, time, and goods for **sprouts** (≈ 1 sprout per hour), and everyone you
@@ -82,4 +84,4 @@ action bodies with those calls and setting `VITE_API_URL` (see `.env.example`).
 - Off-app villagers are a private, visual keepsake — not shown to anyone else.
 - Rides/driving are intentionally excluded for liability; car *repair* stays.
 
-See `Clover Design Doc` (Claude Doc) for the full product thinking and open questions.
+See `NoBucks (now NoBucks) Design Doc` (Claude Doc) for the full product thinking and open questions.

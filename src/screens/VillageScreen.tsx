@@ -48,7 +48,7 @@ function VillageHome() {
       </div>
 
       <div className="screen-sub" style={{ margin: "12px 2px 0" }}>
-        Everyone you trade with moves in and wanders around. {appCount} from Clover, {offCount} added by you.
+        Everyone you trade with moves in and wanders around. {appCount} from NoBucks, {offCount} added by you.
       </div>
 
       <div className="section-h">🎯 Your giving</div>

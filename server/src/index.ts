@@ -18,7 +18,7 @@ const app = express();
 app.use(cors({ origin: env.corsOrigin }));
 app.use(express.json({ limit: "2mb" }));
 
-app.get("/health", (_req, res) => res.json({ ok: true, service: "clover-api" }));
+app.get("/health", (_req, res) => res.json({ ok: true, service: "nobucks-api" }));
 
 app.use("/auth", authRoutes);
 app.use("/listings", listingRoutes);
@@ -36,5 +36,5 @@ app.use("/me", meRoutes);
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
 app.listen(env.port, () => {
-  console.log(`Clover API listening on :${env.port}`);
+  console.log(`NoBucks API listening on :${env.port}`);
 });

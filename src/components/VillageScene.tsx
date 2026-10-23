@@ -99,7 +99,7 @@ export function VillageScene(
     <div className="vscene" ref={sceneRef}>
       <div className="vbg" dangerouslySetInnerHTML={{ __html: bgFor(bgTheme) }} />
       <WeatherLayer weather={state.weather} />
-      <div className="vplate">🍀 {plate}</div>
+      <div className="vplate">🌱 {plate}</div>
       {vgs.map((v, i) => (
         <button key={v.name + i} className={"walker" + (v.trust ? " t-" + v.trust : "")} aria-label={v.name}
           onClick={interactive ? () => actions.openSheet({ kind: "villager", index: i }) : undefined}>

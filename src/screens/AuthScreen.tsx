@@ -10,8 +10,8 @@ function DemoAuth() {
   const { actions } = useStore();
   return (
     <div className="gate auth" style={{ flex: 1 }}>
-      <div className="logo">🍀</div>
-      <h1>Clover</h1>
+      <div className="logo">🌱</div>
+      <h1>NoBucks</h1>
       <div className="tag">A neighborhood that runs on kindness, not cash.</div>
       <div className="scene">🏡 🌻 🍞 🎨 🧺 🌱</div>
       <div className="auth-btns">
@@ -52,8 +52,8 @@ function EmailAuth() {
 
   return (
     <div className="gate auth" style={{ flex: 1 }}>
-      <div className="logo">🍀</div>
-      <h1>Clover</h1>
+      <div className="logo">🌱</div>
+      <h1>NoBucks</h1>
       <div className="tag">A neighborhood that runs on kindness, not cash.</div>
       <div className="auth-btns">
         <div className="seg" style={{ marginBottom: 4 }}>
@@ -68,7 +68,7 @@ function EmailAuth() {
           <input type="email" value={email} placeholder="you@example.com" onChange={(e) => setEmail(e.target.value)} /></div>
         <div className="field"><label>Password</label>
           <input type="password" value={password} placeholder="At least 8 characters" onChange={(e) => setPassword(e.target.value)} /></div>
-        <button className="btn btn-primary" onClick={submit}>{mode === "register" ? "Create account 🍀" : "Sign in"}</button>
+        <button className="btn btn-primary" onClick={submit}>{mode === "register" ? "Create account 🌱" : "Sign in"}</button>
       </div>
       <button className="guest" onClick={() => actions.signIn(true)}>Just looking? Explore in demo mode →</button>
       <div className="legal">Social sign-in (Google / Apple / Facebook) runs through Amazon Cognito once configured.</div>

@@ -6,7 +6,7 @@ export function Header() {
   const unread = state.notifications.filter((n) => !n.read).length;
   return (
     <header className="top">
-      <div className="brand">🍀 clover</div>
+      <div className="brand">🌱 nobucks</div>
       <div className="hi">
         <div className="me t-green"><Character look={state.player.char} /></div>
         <div className="who">

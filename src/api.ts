@@ -1,10 +1,10 @@
-// Typed client for the Clover API (see /server). The app currently runs on the
+// Typed client for the NoBucks API (see /server). The app currently runs on the
 // in-memory store in src/store.tsx; wiring it to a live backend means replacing
 // the store's action bodies with these calls. Nothing here runs until VITE_API_URL
 // points at a running server.
 
 const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
-const TOKEN_KEY = "clover.token";
+const TOKEN_KEY = "nobucks.token";
 
 export function getToken(): string | null {
   try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }

@@ -1,4 +1,4 @@
-// Clover — PostgreSQL schema (Amazon RDS / Aurora Serverless v2)
+// NoBucks — PostgreSQL schema (Amazon RDS / Aurora Serverless v2)
 generator client {
   provider = "prisma-client-js"
 }
@@ -199,7 +199,7 @@ model Villager {
   category  Category
   note      String       @default("")
   charLook  Json
-  refUserId String? // the Clover user this villager represents, when kind = APP
+  refUserId String? // the NoBucks user this villager represents, when kind = APP
   createdAt DateTime     @default(now())
 
   @@index([ownerId])

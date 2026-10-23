@@ -83,7 +83,7 @@ export interface Villager {
   name: string;
   cat: Cat;
   char: CharacterLook;
-  kind: "app" | "off"; // on Clover, or a private off-app keepsake
+  kind: "app" | "off"; // on NoBucks, or a private off-app keepsake
   note: string;
   trust?: TrustLevel;
 }

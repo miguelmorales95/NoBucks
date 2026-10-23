@@ -73,7 +73,7 @@ function EditCardSheet() {
   const preview: VillageCard = {
     id: "preview", name: p.name, char: p.char, villageName: `${p.name}’s Village`,
     villagers: state.village.length, neighborhood: p.neighborhood,
-    flavor: flavor.trim() || "That’s you! 🍀", theme, actorX,
+    flavor: flavor.trim() || "That’s you! 🌱", theme, actorX,
   };
   const pickTheme = (t: CardTheme) => { setTheme(t); if (p.cardActorX == null) setActorX(THEME_ACTOR_X[t]); };
 
@@ -196,7 +196,7 @@ function VillagerSheet({ index }: { index: number }) {
         <div className={"charring big-ring" + (v.trust ? " trust-" + v.trust : "")} style={{ width: 128, height: 140, margin: "4px auto 2px" }}><Character look={v.char} /></div>
         <h2 style={{ textAlign: "center" }}>{v.name}</h2>
         <div className="sh-meta" style={{ justifyContent: "center" }}>
-          {v.kind === "off" ? "💛 Added by you · not on Clover" : `${CATS[v.cat].e} ${CATS[v.cat].label} · a Clover neighbor`}
+          {v.kind === "off" ? "💛 Added by you · not on NoBucks" : `${CATS[v.cat].e} ${CATS[v.cat].label} · a NoBucks neighbor`}
         </div>
         <div className="trustlegend">{v.trust === "green" ? "🟢 Fully trusted" : v.trust === "red" ? "🔴 Unvetted — be careful" : "🟡 Getting known"} · 🟢 trusted · 🟡 known · 🔴 unvetted</div>
       </div>
@@ -216,7 +216,7 @@ function AddVillagerSheet() {
     <>
       <h2>Add someone to your village 💛</h2>
       <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 14px" }}>
-        For people who help you but aren’t on Clover — your car-fixing brother, your tutoring aunt. A private keepsake, just for you.
+        For people who help you but aren’t on NoBucks — your car-fixing brother, your tutoring aunt. A private keepsake, just for you.
       </p>
       <div className="charprev"><Character look={look} /></div>
       <div style={{ textAlign: "center", margin: "10px 0 16px" }}>

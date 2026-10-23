@@ -26,7 +26,7 @@ export function myCard(player: PlayerCardFields, villagers: number): VillageCard
     villageName: `${player.name}’s Village`,
     villagers,
     neighborhood: player.neighborhood,
-    flavor: player.cardFlavor?.trim() || "That’s you! 🍀",
+    flavor: player.cardFlavor?.trim() || "That’s you! 🌱",
     theme: player.cardTheme,
     actorX: player.cardActorX,
   };
