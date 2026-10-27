@@ -100,6 +100,12 @@ function VillageHome() {
       ) : (
         <div className="empty"><span className="e">🌻</span>You haven’t posted yet.<br />Tap + to share something.</div>
       )}
+
+      <footer className="appfoot">
+        <button className="linkbtn" onClick={actions.openPrivacy}>Privacy policy</button>
+        <span aria-hidden="true">·</span>
+        <span>NoBucks is made by SomeDude</span>
+      </footer>
     </>
   );
 }

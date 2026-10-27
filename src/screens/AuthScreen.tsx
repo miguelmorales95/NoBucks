@@ -30,7 +30,7 @@ function DemoAuth() {
         </button>
       </div>
       <button className="guest" onClick={() => actions.signIn(true)}>Just looking? Explore first →</button>
-      <div className="legal">By continuing you agree to be a good neighbor — and to our Terms &amp; Community Guidelines.</div>
+      <div className="legal">By continuing you agree to be a good neighbor — and to our Terms &amp; Community Guidelines. <button className="linkbtn" onClick={actions.openPrivacy}>How we handle your info</button></div>
     </div>
   );
 }
@@ -71,7 +71,7 @@ function EmailAuth() {
         <button className="btn btn-primary" onClick={submit}>{mode === "register" ? "Create account 🌱" : "Sign in"}</button>
       </div>
       <button className="guest" onClick={() => actions.signIn(true)}>Just looking? Explore in demo mode →</button>
-      <div className="legal">Social sign-in (Google / Apple / Facebook) runs through Amazon Cognito once configured.</div>
+      <div className="legal">Social sign-in (Google / Apple / Facebook) runs through Amazon Cognito once configured. <button className="linkbtn" onClick={actions.openPrivacy}>Privacy policy</button></div>
     </div>
   );
 }

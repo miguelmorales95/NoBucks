@@ -32,6 +32,7 @@ interface State {
   communityPot: number; gratitudes: Gratitude[];
   events: EventItem[]; gatherView: "pacts" | "events";
   reports: AdminReport[]; adminOpen: boolean; adminOverview: AdminOverview | null;
+  privacyOpen: boolean;
   weather: Weather | null;
   givingStreak: number; goals: Goal[];
   circles: Circle[]; stickers: Sticker[]; cards: VillageCard[];
@@ -76,6 +77,7 @@ function initialState(): State {
     communityPot: POT_SEED, gratitudes: SEED_GRATITUDES as Gratitude[],
     events: SEED_EVENTS as EventItem[], gatherView: "pacts",
     reports: SEED_REPORTS as AdminReport[], adminOpen: false, adminOverview: null,
+    privacyOpen: false,
     weather: null,
     givingStreak: 3,
     goals: SEED_GOALS.map((g) => ({ ...g })),
@@ -114,6 +116,7 @@ export interface Actions {
   rsvp(eventId: string): void;
   createEvent(d: { title: string; cat: Cat; when: string; place: string; capacity: number; blurb: string }): void;
   openAdmin(): void; closeAdmin(): void;
+  openPrivacy(): void; closePrivacy(): void;
   resolveReport(id: string, status: "reviewed" | "actioned"): void;
   claimLeader(): void;
   setVillageView(v: VillageView): void;
@@ -521,6 +524,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         bump();
       },
       closeAdmin() { s.adminOpen = false; bump(); },
+      openPrivacy() { s.privacyOpen = true; s.sheet = null; bump(); window.scrollTo?.(0, 0); },
+      closePrivacy() { s.privacyOpen = false; bump(); },
       resolveReport(id, status) {
         s.reports = s.reports.filter((r) => r.id !== id);
         toast(status === "actioned" ? "Report actioned ✓" : "Marked reviewed ✓");

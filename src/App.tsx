@@ -14,6 +14,7 @@ import { PostScreen } from "./screens/PostScreen";
 import { PactsScreen } from "./screens/PactsScreen";
 import { ChatsScreen } from "./screens/ChatsScreen";
 import { AdminScreen } from "./screens/AdminScreen";
+import { PrivacyScreen } from "./screens/PrivacyScreen";
 
 function TabScreen() {
   const { state } = useStore();
@@ -58,7 +59,9 @@ export function App() {
   }, []);
 
   let body: ReactNode;
-  if (state.stage === "auth") body = <AuthScreen />;
+  // The privacy policy is reachable from every stage, including before sign-in.
+  if (state.privacyOpen) body = <main className="screen"><PrivacyScreen /></main>;
+  else if (state.stage === "auth") body = <AuthScreen />;
   else if (state.stage === "verify") body = <VerifyScreen />;
   else if (state.stage === "create") body = <CreateScreen />;
   else body = (
