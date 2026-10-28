@@ -38,6 +38,7 @@ const registerSchema = z.object({
   password: z.string().min(8),
   // NoBucks is for adults: people meet strangers to trade help.
   adult: z.literal(true, { errorMap: () => ({ message: "NoBucks is for people 18 and older" }) }),
+  joinCode: z.string().max(12).optional(),
   char: z.record(z.number()).optional(),
   lat: z.number().optional(),
   lng: z.number().optional(),
@@ -50,6 +51,8 @@ router.post("/register", wrap(async (req, res) => {
   body.email = body.email.toLowerCase();
   const existing = await prisma.user.findUnique({ where: { email: body.email } });
   if (existing) return res.status(409).json({ error: "That email is already registered" });
+  const hood = body.joinCode?.trim() ? await useJoinCode(body.joinCode) : null;
+  if (body.joinCode?.trim() && !hood) return res.status(400).json({ error: "That neighborhood code didn't work. Check it with your organizer." });
   const user = await prisma.user.create({
     data: {
       email: body.email,
@@ -60,10 +63,31 @@ router.post("/register", wrap(async (req, res) => {
       lat: roughCoord(body.lat),
       lng: roughCoord(body.lng),
       adultAt: new Date(),
+      neighborhood: hood,
       transactions: { create: { amount: 12, kind: "GRANT", note: "Welcome grant" } },
     },
   });
   res.json({ token: signToken(user.id, user.tokenVersion), user: publicUser(user) });
+}));
+
+/** The neighborhood a join code belongs to (counting the use), or null if it's wrong or used up. */
+async function useJoinCode(raw: string): Promise<string | null> {
+  const code = raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const c = await prisma.joinCode.findUnique({ where: { code } });
+  if (!c || c.expiresAt <= new Date() || c.uses >= c.maxUses) return null;
+  await prisma.joinCode.update({ where: { id: c.id }, data: { uses: { increment: 1 } } });
+  return c.neighborhood;
+}
+
+// A member without a neighborhood joins one with a code (moving neighborhoods goes through a leader).
+router.post("/join", requireAuth, wrap(async (req: AuthedRequest, res) => {
+  const { code } = z.object({ code: z.string().min(4).max(12) }).parse(req.body);
+  const me = await prisma.user.findUnique({ where: { id: req.userId } });
+  if (me?.neighborhood) return res.status(409).json({ error: `You're already part of ${me.neighborhood}` });
+  const hood = await useJoinCode(code);
+  if (!hood) return res.status(400).json({ error: "That neighborhood code didn't work. Check it with your organizer." });
+  const user = await prisma.user.update({ where: { id: req.userId }, data: { neighborhood: hood } });
+  res.json({ user: publicUser(user) });
 }));
 
 const loginSchema = z.object({ email: z.string().email(), password: z.string() });

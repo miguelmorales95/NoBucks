@@ -1,11 +1,36 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "../store";
+import { api } from "../api";
 
 const METHODS = [
   { id: "in-person", label: "Met them in person" },
   { id: "known-neighbor", label: "I already know them" },
   { id: "vouched", label: "Two members vouched" },
 ] as const;
+
+/** Codes neighbors type at sign-up to join this neighborhood (verification is still in person). */
+function JoinCodes() {
+  const { state, actions } = useStore();
+  const [codes, setCodes] = useState<{ code: string; expiresAt: string; uses: number }[] | null>(null);
+  const load = () => api.joinCodes().then((r) => setCodes(r.codes)).catch((e) => actions.toast(e.message));
+  useEffect(() => { if (state.apiMode) void load(); }, [state.apiMode]);
+  if (!state.apiMode || codes === null) return null;
+  return (
+    <>
+      <div className="section-h">🔑 Invite neighbors</div>
+      <div className="repcard">
+        <div className="repdetails" style={{ marginBottom: 8 }}>Share a code on a flyer or at a meetup. New neighbors type it when they sign up to join {state.adminOverview?.neighborhood ?? "your neighborhood"}.</div>
+        {codes.map((c) => (
+          <div key={c.code} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
+            <b style={{ letterSpacing: 2 }}>{c.code}</b>
+            <span className="repdetails">{c.uses} joined · until {new Date(c.expiresAt).toLocaleDateString()}</span>
+          </div>
+        ))}
+        <button className="btn btn-primary" onClick={async () => { try { await api.createJoinCode(30); await load(); } catch (e) { actions.toast((e as Error).message); } }}>New code (30 days)</button>
+      </div>
+    </>
+  );
+}
 
 /** At a meetup: the neighbor says the email they signed up with, and the leader confirms them. */
 function VerifyNeighbor() {
@@ -58,6 +83,7 @@ export function AdminScreen() {
         <div className="vm"><div className="num">{state.reports.length}</div><div className="lab">Open reports</div></div>
       </div>
 
+      <JoinCodes />
       <VerifyNeighbor />
 
       <div className="section-h">🚩 Reports to review</div>

@@ -97,7 +97,8 @@ export interface Actions {
   setQuery(q: string): void; setFilter(f: Cat | "all"): void; selectPin(id: string | null): void;
   setHoodScope(scope: "mine" | "nearby" | "all"): void;
   signIn(guest: boolean): void;
-  apiAuth(b: { mode: "login" | "register"; email: string; name: string; password: string }): void;
+  apiAuth(b: { mode: "login" | "register"; email: string; name: string; password: string; joinCode?: string }): void;
+  joinNeighborhood(code: string): Promise<boolean>;
   verify(method: string): void;
   setDraft(l: CharacterLook): void; shuffleDraft(): void; finishCreate(name: string): void;
   openSheet(s: Sheet): void; closeSheet(): void;
@@ -275,7 +276,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         (async () => {
           try {
             if (b.mode === "register") {
-              const r = await api.register({ email: b.email, name: b.name, password: b.password, adult: true, char: s.player.char as any });
+              const r = await api.register({ email: b.email, name: b.name, password: b.password, adult: true, joinCode: b.joinCode || undefined, char: s.player.char as any });
               setToken(r.token); s.meId = (r.user as any).id; s.player = { name: (r.user as any).name, char: s.player.char, neighborhood: (r.user as any).neighborhood ?? HOME_HOOD, role: ((r.user as any).role ?? "member"), villageTheme: "neighborhood" };
               s.stage = "verify"; bump();
             } else {
@@ -543,6 +544,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       claimLeader() {
         if (API) { toast("Community leaders are chosen by your neighborhood's organizer"); return; }
         s.player.role = "leader"; toast("You're a community leader 🛡️"); bump();
+      },
+      async joinNeighborhood(code) {
+        try {
+          const r = await api.joinNeighborhood(code);
+          s.player.neighborhood = (r.user as any).neighborhood ?? s.player.neighborhood;
+          toast(`Welcome to ${s.player.neighborhood} 🌱`); bump(); return true;
+        } catch (e) { fail(e); return false; }
       },
       signOut(everywhere = false) {
         (async () => {

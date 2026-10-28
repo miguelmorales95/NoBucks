@@ -25,6 +25,7 @@ function AccountPanel() {
   const { state, actions } = useStore();
   const [deleting, setDeleting] = useState(false);
   const [password, setPassword] = useState("");
+  const [joinCode, setJoinCode] = useState("");
   if (!state.apiMode || !state.meId) return null;
   return (
     <section className="policy" style={{ paddingBottom: 0 }}>
@@ -34,6 +35,13 @@ function AccountPanel() {
         <button className="btn btn-ghost" onClick={() => actions.signOut(false)}>Sign out</button>
         <button className="btn btn-ghost" onClick={() => actions.signOut(true)}>Sign out on every device</button>
         <button className="btn btn-ghost" style={{ color: "#b3261e" }} onClick={() => setDeleting(true)}>Delete my account</button>
+      </div>
+      <div className="field" style={{ marginTop: 12 }}><label>Have a neighborhood code?</label>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input value={joinCode} maxLength={12} placeholder="K7Q2XA" onChange={(e) => setJoinCode(e.target.value.toUpperCase())} />
+          <button className="btn btn-ghost" disabled={joinCode.trim().length < 4}
+            onClick={async () => { if (await actions.joinNeighborhood(joinCode.trim())) setJoinCode(""); }}>Join</button>
+        </div>
       </div>
       {deleting && (
         <div className="repcard" style={{ marginTop: 12 }}>

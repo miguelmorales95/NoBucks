@@ -34,9 +34,9 @@ docker run --name nobucks-pg -e POSTGRES_PASSWORD=password -e POSTGRES_DB=nobuck
 
 | Area | Routes |
 | --- | --- |
-| Auth | `POST /auth/register` (needs `adult: true`), `POST /auth/login`, `GET /auth/me`, `POST /auth/forgot`, `POST /auth/reset` |
+| Auth | `POST /auth/register` (needs `adult: true`; optional `joinCode`), `POST /auth/join` (a code, for members without a neighborhood), `POST /auth/login`, `GET /auth/me`, `POST /auth/forgot`, `POST /auth/reset` |
 | Your account | `GET /auth/me/export` (all your data as JSON), `POST /auth/logout-all`, `DELETE /auth/me` (with password) |
-| Leaders | `GET /admin/overview`, `GET /admin/reports`, `POST /admin/reports/:id/resolve`, `GET /admin/members/unverified`, `POST /admin/members/:id/verify`, `POST /admin/members/verify-by-email`: all limited to the leader's own neighborhood |
+| Leaders | `GET /admin/overview`, `GET /admin/reports`, `POST /admin/reports/:id/resolve`, `GET /admin/members/unverified`, `POST /admin/members/:id/verify`, `POST /admin/members/verify-by-email`, `GET/POST /admin/join-codes`, `DELETE /admin/join-codes/:code`: all limited to the leader's own neighborhood |
 | Listings | `GET /listings` (filters: `type`, `category`, `lat`, `lng`, `maxDist`), `POST /listings`, `GET /listings/:id` |
 | Photos | `POST /uploads/presign` → presigned S3 PUT URL |
 | Messaging & trades | `GET /threads`, `POST /threads`, `GET /threads/:id`, `POST /threads/:id/messages`, `POST /threads/:id/reserve`, `POST /threads/:id/complete`, `POST /threads/:id/rate` |
@@ -50,6 +50,8 @@ All routes except `register`/`login`/`forgot`/`reset` require `Authorization: Be
 
 - **Leaders are appointed, never self-made:** `npm run make-leader -- <email> "<neighborhood>"` (or
   `--remove`). Leader tools only see and act on their own neighborhood.
+- **Joining a neighborhood:** a leader makes a 6-character join code (30 days, up to 200 uses) to share on a
+  flyer or at a meetup; neighbors type it at sign-up (or later, under Your account). Joining doesn't verify.
 - **Verification is in person:** a leader verifies a neighbor (by the email they signed up with), which also
   adds them to the leader's neighborhood. There is no self-serve "check".
 - **Sessions can be ended:** tokens carry a version; sign-out-everywhere, a password reset and deleting the
@@ -64,7 +66,7 @@ All routes except `register`/`login`/`forgot`/`reset` require `Authorization: Be
 - Password reset needs `RESEND_API_KEY` and `MAIL_FROM`; without them `/auth/forgot` answers 501.
 
 **Schema changes (2026-10-29):** `User` gained `tokenVersion`, `adultAt`, `deletedAt`, `verifiedById`,
-`verifiedAt`, and there's a new `PasswordReset` table. Not applied to any shared database: create the
+`verifiedAt`, and there are new `PasswordReset` and `JoinCode` tables. Not applied to any shared database: create the
 pilot's own database and run `npx prisma migrate dev --name security` there first.
 
 ## The sprout economy (escrow)

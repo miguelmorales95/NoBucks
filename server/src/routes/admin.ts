@@ -91,4 +91,30 @@ router.post("/members/verify-by-email", wrap(async (req: LeaderRequest, res) => 
   res.json({ ok: true, name: user.name });
 }));
 
+// ---- Join codes: neighbors type one at sign-up (or later) to join this neighborhood ------------
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O or 1/I mix-ups
+
+router.get("/join-codes", wrap(async (req: LeaderRequest, res) => {
+  const codes = await prisma.joinCode.findMany({ where: { neighborhood: req.hood, expiresAt: { gt: new Date() } }, orderBy: { createdAt: "desc" } });
+  res.json({ codes: codes.map((c) => ({ code: c.code, expiresAt: c.expiresAt, uses: c.uses, maxUses: c.maxUses })) });
+}));
+
+router.post("/join-codes", wrap(async (req: LeaderRequest, res) => {
+  const { days } = z.object({ days: z.number().int().min(1).max(90).default(30) }).parse(req.body ?? {});
+  const { randomInt } = await import("crypto");
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = Array.from({ length: 6 }, () => CODE_CHARS[randomInt(CODE_CHARS.length)]).join("");
+    try {
+      const c = await prisma.joinCode.create({ data: { code, neighborhood: req.hood!, createdById: req.userId!, expiresAt: new Date(Date.now() + days * 86400_000) } });
+      return res.json({ code: c.code, expiresAt: c.expiresAt });
+    } catch { /* taken: try another */ }
+  }
+  res.status(500).json({ error: "Couldn't make a code. Try again." });
+}));
+
+router.delete("/join-codes/:code", wrap(async (req: LeaderRequest, res) => {
+  await prisma.joinCode.deleteMany({ where: { code: req.params.code.toUpperCase(), neighborhood: req.hood } });
+  res.json({ ok: true });
+}));
+
 export default router;

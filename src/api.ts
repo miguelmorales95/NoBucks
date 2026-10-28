@@ -32,7 +32,7 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 
 export const api = {
   // auth
-  register: (b: { email: string; name: string; password: string; adult: true; char?: Record<string, number> }) =>
+  register: (b: { email: string; name: string; password: string; adult: true; joinCode?: string; char?: Record<string, number> }) =>
     request<{ token: string; user: unknown }>("/auth/register", { method: "POST", body: JSON.stringify(b) }),
   login: (b: { email: string; password: string }) =>
     request<{ token: string; user: unknown }>("/auth/login", { method: "POST", body: JSON.stringify(b) }),
@@ -40,6 +40,9 @@ export const api = {
   forgot: (email: string) => request<{ ok: true }>("/auth/forgot", { method: "POST", body: JSON.stringify({ email }) }),
   reset: (b: { email: string; code: string; password: string }) =>
     request<{ token: string; user: unknown }>("/auth/reset", { method: "POST", body: JSON.stringify(b) }),
+  joinNeighborhood: (code: string) => request<{ user: unknown }>("/auth/join", { method: "POST", body: JSON.stringify({ code }) }),
+  joinCodes: () => request<{ codes: { code: string; expiresAt: string; uses: number; maxUses: number }[] }>("/admin/join-codes"),
+  createJoinCode: (days = 30) => request<{ code: string; expiresAt: string }>("/admin/join-codes", { method: "POST", body: JSON.stringify({ days }) }),
   logoutAll: () => request<{ ok: true }>("/auth/logout-all", { method: "POST" }),
   exportData: () => request<unknown>("/auth/me/export"),
   deleteAccount: (password: string) => request<{ ok: true }>("/auth/me", { method: "DELETE", body: JSON.stringify({ password }) }),

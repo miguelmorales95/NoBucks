@@ -43,6 +43,7 @@ function EmailAuth() {
   const [password, setPassword] = useState("");
   const [adult, setAdult] = useState(false);
   const [code, setCode] = useState("");
+  const [joinCode, setJoinCode] = useState("");
 
   const submit = () => {
     if (!email.trim() || password.length < 8 || (mode === "register" && !name.trim())) {
@@ -50,7 +51,7 @@ function EmailAuth() {
       return;
     }
     if (mode === "register" && !adult) { actions.toast("NoBucks is for people 18 and older"); return; }
-    actions.apiAuth({ mode: mode === "register" ? "register" : "login", email: email.trim(), name: name.trim(), password });
+    actions.apiAuth({ mode: mode === "register" ? "register" : "login", email: email.trim(), name: name.trim(), password, joinCode: joinCode.trim() });
   };
 
   if (mode === "forgot" || mode === "reset") {
@@ -97,6 +98,11 @@ function EmailAuth() {
           <input type="email" value={email} placeholder="you@example.com" onChange={(e) => setEmail(e.target.value)} /></div>
         <div className="field"><label>Password</label>
           <input type="password" value={password} placeholder="At least 8 characters" onChange={(e) => setPassword(e.target.value)} /></div>
+        {mode === "register" && (
+          <div className="field"><label>Neighborhood code (optional)</label>
+            <input value={joinCode} maxLength={12} placeholder="From your organizer, like K7Q2XA" autoCapitalize="characters"
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())} /></div>
+        )}
         {mode === "register" && (
           <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 14, textAlign: "left" }}>
             <input type="checkbox" checked={adult} onChange={(e) => setAdult(e.target.checked)} style={{ marginTop: 3 }} />
