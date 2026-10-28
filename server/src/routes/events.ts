@@ -6,8 +6,13 @@ import type { Category } from "@prisma/client";
 
 const router = Router();
 
+// Events are for your own neighborhood: you see (and can join) only events hosted there.
+const myHood = async (userId?: string) => (await prisma.user.findUnique({ where: { id: userId } }))?.neighborhood ?? null;
+
 router.get("/", requireAuth, wrap(async (req: AuthedRequest, res) => {
+  const hood = await myHood(req.userId);
   const events = await prisma.event.findMany({
+    where: { neighborhood: hood },
     orderBy: { createdAt: "desc" },
     take: 50,
     include: { _count: { select: { rsvps: true } }, rsvps: { where: { userId: req.userId }, select: { id: true } } },
@@ -45,6 +50,8 @@ router.post("/", requireAuth, wrap(async (req: AuthedRequest, res) => {
 
 // Toggle the current user's RSVP for an event.
 router.post("/:id/rsvp", requireAuth, wrap(async (req: AuthedRequest, res) => {
+  const event = await prisma.event.findUnique({ where: { id: req.params.id } });
+  if (!event || event.neighborhood !== (await myHood(req.userId))) return res.status(404).json({ error: "Not found" });
   const existing = await prisma.eventRsvp.findUnique({ where: { eventId_userId: { eventId: req.params.id, userId: req.userId! } } });
   if (existing) await prisma.eventRsvp.delete({ where: { id: existing.id } });
   else await prisma.eventRsvp.create({ data: { eventId: req.params.id, userId: req.userId! } });

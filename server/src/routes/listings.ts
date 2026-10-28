@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "../db";
 import { requireAuth, wrap, type AuthedRequest } from "../auth";
 import { trustOf } from "./auth";
+import { roughCoord, roughMiles } from "../lib/privacy";
+import { ownPhotoKey, photoLink } from "./uploads";
 import type { Category, CostType, ListingType } from "@prisma/client";
 
 const router = Router();
@@ -26,7 +28,8 @@ function listingDTO(
     willTravel?: boolean; locations?: unknown;
     author: { id: string; name: string; rating: number; reviews: number; verified: boolean };
   },
-  dist: number
+  dist: number,
+  photo: string | null,
 ) {
   const cost =
     l.costType === "SPROUTS" ? l.cost ?? 0 :
@@ -35,11 +38,11 @@ function listingDTO(
   return {
     id: l.id, type: l.type.toLowerCase(), cat: l.category.toLowerCase(),
     name: l.author.name, authorId: l.author.id,
-    title: l.title, blurb: l.blurb, cost, unit: l.unit, photo: l.photoUrl ?? undefined,
+    title: l.title, blurb: l.blurb, cost, unit: l.unit, photo: photo ?? undefined,
     neighborhood: l.neighborhood ?? undefined,
     willTravel: l.willTravel ?? false, locations: l.locations ?? undefined,
     trust: trustOf(l.author.verified, l.author.rating),
-    dist: Math.round(dist * 10) / 10, rating: l.rating, reviews: l.reviews,
+    dist: roughMiles(dist), rating: l.rating, reviews: l.reviews,
   };
 }
 
@@ -54,8 +57,8 @@ const feedQuery = z.object({
 router.get("/", requireAuth, wrap(async (req: AuthedRequest, res) => {
   const q = feedQuery.parse(req.query);
   const me = await prisma.user.findUnique({ where: { id: req.userId } });
-  const lat = q.lat ?? me?.lat ?? 0;
-  const lng = q.lng ?? me?.lng ?? 0;
+  const lat = roughCoord(q.lat ?? me?.lat ?? 0)!;
+  const lng = roughCoord(q.lng ?? me?.lng ?? 0)!;
 
   const blocks = await prisma.block.findMany({ where: { userId: req.userId }, select: { blockedId: true } });
   const blockedIds = blocks.map((b) => b.blockedId);
@@ -73,12 +76,14 @@ router.get("/", requireAuth, wrap(async (req: AuthedRequest, res) => {
   });
 
   const withDist = listings.map((l) => {
-    const dist = l.lat != null && l.lng != null ? haversineMiles(lat, lng, l.lat, l.lng) : 0;
+    // Older rows may hold exact spots; distances are always worked out from rough ones.
+    const dist = l.lat != null && l.lng != null ? haversineMiles(lat, lng, roughCoord(l.lat)!, roughCoord(l.lng)!) : 0;
     return { l, dist };
   });
   const filtered = q.maxDist != null ? withDist.filter((x) => x.dist <= q.maxDist!) : withDist;
   filtered.sort((a, b) => a.dist - b.dist);
-  res.json({ listings: filtered.map((x) => listingDTO(x.l, x.dist)) });
+  const photos = await Promise.all(filtered.map((x) => photoLink(x.l.photoUrl)));
+  res.json({ listings: filtered.map((x, i) => listingDTO(x.l, x.dist, photos[i])) });
 }));
 
 const createSchema = z.object({
@@ -89,7 +94,7 @@ const createSchema = z.object({
   costType: z.enum(["SPROUTS", "BARTER", "PACT", "FREE"]).default("SPROUTS"),
   cost: z.number().int().min(0).max(999).nullable().optional(),
   unit: z.string().max(20).default(""),
-  photoUrl: z.string().url().optional(),
+  photoUrl: z.string().max(300).optional(), // the key from /uploads/presign
   neighborhood: z.string().max(60).optional(),
   willTravel: z.boolean().optional(),
   locations: z.array(z.object({ label: z.string(), mx: z.number(), my: z.number() })).optional(),
@@ -97,6 +102,10 @@ const createSchema = z.object({
 
 router.post("/", requireAuth, wrap(async (req: AuthedRequest, res) => {
   const b = createSchema.parse(req.body);
+  // Only a photo this person uploaded to NoBucks: an outside address could track who views it.
+  if (b.photoUrl && !ownPhotoKey(b.photoUrl)?.startsWith(`listings/${req.userId}/`)) {
+    return res.status(400).json({ error: "Upload the photo through NoBucks" });
+  }
   const me = await prisma.user.findUnique({ where: { id: req.userId } });
   const listing = await prisma.listing.create({
     data: {
@@ -106,15 +115,15 @@ router.post("/", requireAuth, wrap(async (req: AuthedRequest, res) => {
       title: b.title, blurb: b.blurb || "(No details yet)",
       costType: b.type === "pact" ? "PACT" : b.costType,
       cost: b.costType === "SPROUTS" ? b.cost ?? 0 : null,
-      unit: b.unit, photoUrl: b.photoUrl,
+      unit: b.unit, photoUrl: b.photoUrl ? ownPhotoKey(b.photoUrl) : null,
       neighborhood: b.neighborhood ?? me?.neighborhood,
       willTravel: b.willTravel ?? false,
       locations: b.locations ?? undefined,
-      lat: me?.lat, lng: me?.lng,
+      lat: roughCoord(me?.lat), lng: roughCoord(me?.lng),
     },
     include: { author: { select: { id: true, name: true, rating: true, reviews: true, verified: true } } },
   });
-  res.json({ listing: listingDTO(listing, 0) });
+  res.json({ listing: listingDTO(listing, 0, await photoLink(listing.photoUrl)) });
 }));
 
 router.get("/:id", requireAuth, wrap(async (req, res) => {
@@ -122,8 +131,8 @@ router.get("/:id", requireAuth, wrap(async (req, res) => {
     where: { id: req.params.id },
     include: { author: { select: { id: true, name: true, rating: true, reviews: true, verified: true } } },
   });
-  if (!listing) return res.status(404).json({ error: "Not found" });
-  res.json({ listing: listingDTO(listing, 0) });
+  if (!listing || !listing.active) return res.status(404).json({ error: "Not found" });
+  res.json({ listing: listingDTO(listing, 0, await photoLink(listing.photoUrl)) });
 }));
 
 export default router;

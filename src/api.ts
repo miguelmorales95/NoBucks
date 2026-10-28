@@ -32,12 +32,17 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 
 export const api = {
   // auth
-  register: (b: { email: string; name: string; password: string; char?: Record<string, number> }) =>
+  register: (b: { email: string; name: string; password: string; adult: true; char?: Record<string, number> }) =>
     request<{ token: string; user: unknown }>("/auth/register", { method: "POST", body: JSON.stringify(b) }),
   login: (b: { email: string; password: string }) =>
     request<{ token: string; user: unknown }>("/auth/login", { method: "POST", body: JSON.stringify(b) }),
   me: () => request<{ user: unknown }>("/auth/me"),
-  verify: (method: string) => request<{ user: unknown }>("/auth/verify", { method: "POST", body: JSON.stringify({ method }) }),
+  forgot: (email: string) => request<{ ok: true }>("/auth/forgot", { method: "POST", body: JSON.stringify({ email }) }),
+  reset: (b: { email: string; code: string; password: string }) =>
+    request<{ token: string; user: unknown }>("/auth/reset", { method: "POST", body: JSON.stringify(b) }),
+  logoutAll: () => request<{ ok: true }>("/auth/logout-all", { method: "POST" }),
+  exportData: () => request<unknown>("/auth/me/export"),
+  deleteAccount: (password: string) => request<{ ok: true }>("/auth/me", { method: "DELETE", body: JSON.stringify({ password }) }),
   updateMe: (b: { char?: Record<string, number>; villageTheme?: string; wardrobe?: string[] }) =>
     request<{ user: unknown }>("/me/update", { method: "POST", body: JSON.stringify(b) }),
 
@@ -53,9 +58,13 @@ export const api = {
   // photo upload (two steps: presign, then PUT the file to S3)
   presign: (contentType: string) =>
     request<{ uploadUrl: string; fileUrl: string }>("/uploads/presign", { method: "POST", body: JSON.stringify({ contentType }) }),
+  // Photos are redrawn before upload: that drops hidden details such as where a phone photo was
+  // taken (EXIF), and keeps them a sensible size.
   async uploadPhoto(file: File): Promise<string> {
-    const { uploadUrl, fileUrl } = await this.presign(file.type);
-    await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+    const clean = await stripPhoto(file);
+    const { uploadUrl, fileUrl } = await this.presign(clean.type);
+    const res = await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": clean.type }, body: clean });
+    if (!res.ok) throw new Error("The photo didn't upload. Please try again.");
     return fileUrl;
   },
 
@@ -98,8 +107,9 @@ export const api = {
   rsvp: (id: string) => request<{ ok: true; going: number; rsvped: boolean }>(`/events/${id}/rsvp`, { method: "POST" }),
 
   // admin / community-leader tools
-  claimLeader: () => request<{ role: string }>("/admin/claim", { method: "POST" }),
-  adminOverview: () => request<{ neighborhood?: string; members: number; listings: number; events: number; openReports: number; pot: number }>("/admin/overview"),
+  adminOverview: () => request<{ neighborhood?: string; members: number; unverified?: number; listings: number; events: number; openReports: number; pot: number }>("/admin/overview"),
+  verifyByEmail: (email: string, method: "in-person" | "known-neighbor" | "vouched") =>
+    request<{ ok: true; name: string }>("/admin/members/verify-by-email", { method: "POST", body: JSON.stringify({ email, method }) }),
   adminReports: () => request<{ reports: any[] }>("/admin/reports"),
   resolveReport: (id: string, status: "REVIEWED" | "ACTIONED") =>
     request<{ ok: true }>(`/admin/reports/${id}/resolve`, { method: "POST", body: JSON.stringify({ status }) }),
@@ -110,3 +120,15 @@ export const api = {
   registerDevice: (token: string, platform: "ios" | "android" | "web") =>
     request<{ device: unknown }>("/notifications/devices", { method: "POST", body: JSON.stringify({ token, platform }) }),
 };
+
+/** Redraws a photo on a canvas (at most 1600 px on its long side) and saves it as JPEG, which
+ *  leaves out its EXIF data: location, camera and time. */
+async function stripPhoto(file: File): Promise<Blob> {
+  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" } as ImageBitmapOptions);
+  const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't read that photo"))), "image/jpeg", 0.86));
+}

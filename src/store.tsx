@@ -119,6 +119,12 @@ export interface Actions {
   openPrivacy(): void; closePrivacy(): void;
   resolveReport(id: string, status: "reviewed" | "actioned"): void;
   claimLeader(): void;
+  signOut(everywhere?: boolean): void;
+  downloadMyData(): void;
+  deleteAccount(password: string): Promise<boolean>;
+  forgotPassword(email: string): Promise<boolean>;
+  resetPassword(email: string, code: string, password: string): void;
+  verifyNeighbor(email: string, method: "in-person" | "known-neighbor" | "vouched"): Promise<boolean>;
   setVillageView(v: VillageView): void;
   peek(name: string): void;
   sendSticker(toName: string, emoji: string): void;
@@ -269,7 +275,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         (async () => {
           try {
             if (b.mode === "register") {
-              const r = await api.register({ email: b.email, name: b.name, password: b.password, char: s.player.char as any });
+              const r = await api.register({ email: b.email, name: b.name, password: b.password, adult: true, char: s.player.char as any });
               setToken(r.token); s.meId = (r.user as any).id; s.player = { name: (r.user as any).name, char: s.player.char, neighborhood: (r.user as any).neighborhood ?? HOME_HOOD, role: ((r.user as any).role ?? "member"), villageTheme: "neighborhood" };
               s.stage = "verify"; bump();
             } else {
@@ -281,8 +287,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       verify(method) {
         if (API) {
-          (async () => { try { await api.verify(method); } catch (e) { fail(e); } s.stage = "create"; s.draft = cloneChar(s.player.char); bump(); })();
-        } else { s.stage = "create"; s.draft = cloneChar(s.player.char); toast("You're verified ✓"); }
+          // Nothing to check here: a community leader verifies neighbors in person.
+          void method; s.stage = "create"; s.draft = cloneChar(s.player.char); bump();
+        } else { s.stage = "create"; s.draft = cloneChar(s.player.char); }
       },
       setDraft(l) { s.draft = l; bump(); },
       shuffleDraft() { s.draft = randomChar(); bump(); },
@@ -532,12 +539,57 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (API) api.resolveReport(id, status === "actioned" ? "ACTIONED" : "REVIEWED").catch(fail);
         bump();
       },
+      // Demo only: with a real server, leaders are appointed by the pilot's organizer.
       claimLeader() {
-        if (API) {
-          (async () => { try { await api.claimLeader(); } catch (e) { fail(e); } s.player.role = "leader"; toast("You're a community leader 🛡️"); bump(); })();
-          return;
-        }
+        if (API) { toast("Community leaders are chosen by your neighborhood's organizer"); return; }
         s.player.role = "leader"; toast("You're a community leader 🛡️"); bump();
+      },
+      signOut(everywhere = false) {
+        (async () => {
+          if (API && everywhere) { try { await api.logoutAll(); } catch (e) { fail(e); return; } }
+          setToken(null);
+          Object.assign(s, initialState());
+          toast(everywhere ? "Signed out on every device" : "Signed out");
+        })();
+      },
+      downloadMyData() {
+        (async () => {
+          try {
+            const data = await api.exportData();
+            const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+            const a = document.createElement("a");
+            a.href = url; a.download = `nobucks-my-data-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 10_000);
+          } catch (e) { fail(e); }
+        })();
+      },
+      async deleteAccount(password) {
+        try {
+          await api.deleteAccount(password);
+          setToken(null);
+          Object.assign(s, initialState());
+          toast("Your account is deleted. Thank you for being a neighbor 🌱");
+          return true;
+        } catch (e) { fail(e); return false; }
+      },
+      async forgotPassword(email) {
+        try { await api.forgot(email); toast("If that email has an account, a code is on its way"); return true; }
+        catch (e) { fail(e); return false; }
+      },
+      resetPassword(email, code, password) {
+        (async () => {
+          try { const r = await api.reset({ email, code, password }); setToken(r.token); await bootstrap(); toast("Password changed ✓"); }
+          catch (e) { fail(e); }
+        })();
+      },
+      async verifyNeighbor(email, method) {
+        try {
+          const r = await api.verifyByEmail(email, method);
+          toast(`${r.name} is verified ✓`);
+          if (s.adminOverview?.unverified) s.adminOverview.unverified -= 1;
+          bump();
+          return true;
+        } catch (e) { fail(e); return false; }
       },
       setVillageView(v) { s.villageView = v; if (v !== "peek") s.peekName = null; bump(); },
       peek(name) { s.peekName = name; s.villageView = "peek"; bump(); },

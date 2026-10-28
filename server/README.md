@@ -34,7 +34,9 @@ docker run --name nobucks-pg -e POSTGRES_PASSWORD=password -e POSTGRES_DB=nobuck
 
 | Area | Routes |
 | --- | --- |
-| Auth | `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `POST /auth/verify` |
+| Auth | `POST /auth/register` (needs `adult: true`), `POST /auth/login`, `GET /auth/me`, `POST /auth/forgot`, `POST /auth/reset` |
+| Your account | `GET /auth/me/export` (all your data as JSON), `POST /auth/logout-all`, `DELETE /auth/me` (with password) |
+| Leaders | `GET /admin/overview`, `GET /admin/reports`, `POST /admin/reports/:id/resolve`, `GET /admin/members/unverified`, `POST /admin/members/:id/verify`, `POST /admin/members/verify-by-email`: all limited to the leader's own neighborhood |
 | Listings | `GET /listings` (filters: `type`, `category`, `lat`, `lng`, `maxDist`), `POST /listings`, `GET /listings/:id` |
 | Photos | `POST /uploads/presign` → presigned S3 PUT URL |
 | Messaging & trades | `GET /threads`, `POST /threads`, `GET /threads/:id`, `POST /threads/:id/messages`, `POST /threads/:id/reserve`, `POST /threads/:id/complete`, `POST /threads/:id/rate` |
@@ -42,7 +44,28 @@ docker run --name nobucks-pg -e POSTGRES_PASSWORD=password -e POSTGRES_DB=nobuck
 | Moderation | `POST /moderation/reports`, `GET/POST /moderation/blocks`, `DELETE /moderation/blocks/:id` |
 | Notifications | `GET /notifications`, `POST /notifications/read`, `POST /notifications/devices` |
 
-All routes except `register`/`login` require `Authorization: Bearer <token>`.
+All routes except `register`/`login`/`forgot`/`reset` require `Authorization: Bearer <token>`.
+
+## Safety rules the code enforces
+
+- **Leaders are appointed, never self-made:** `npm run make-leader -- <email> "<neighborhood>"` (or
+  `--remove`). Leader tools only see and act on their own neighborhood.
+- **Verification is in person:** a leader verifies a neighbor (by the email they signed up with), which also
+  adds them to the leader's neighborhood. There is no self-serve "check".
+- **Sessions can be ended:** tokens carry a version; sign-out-everywhere, a password reset and deleting the
+  account all end every existing token.
+- **`JWT_SECRET` is required in production** (32+ random characters); the server won't start without it.
+- **Adults only:** registration needs `adult: true` (the app asks "I'm 18 or older").
+- **Location stays rough:** stored to about a kilometer, distances shown in half-mile steps (min 0.5).
+- **Photos are private:** keep the bucket's public access blocked; the API hands out one-hour links and
+  only accepts photos uploaded through `/uploads/presign`. The web app strips EXIF before uploading.
+- **Phone notifications carry only a title** ("New message from Ana"), never message text.
+- **Events are per neighborhood:** you see and join only your own neighborhood's events.
+- Password reset needs `RESEND_API_KEY` and `MAIL_FROM`; without them `/auth/forgot` answers 501.
+
+**Schema changes (2026-10-29):** `User` gained `tokenVersion`, `adultAt`, `deletedAt`, `verifiedById`,
+`verifiedAt`, and there's a new `PasswordReset` table. Not applied to any shared database: create the
+pilot's own database and run `npx prisma migrate dev --name security` there first.
 
 ## The sprout economy (escrow)
 

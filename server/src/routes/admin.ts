@@ -3,36 +3,39 @@ import { z } from "zod";
 import { prisma } from "../db";
 import { requireAuth, wrap, type AuthedRequest } from "../auth";
 
+// Community-leader tools. Leaders are appointed by whoever runs the pilot (npm run make-leader),
+// never by themselves, and only see and act on their own neighborhood.
 const router = Router();
 
-async function requireLeader(req: AuthedRequest, res: Response, next: NextFunction) {
+interface LeaderRequest extends AuthedRequest { hood?: string }
+
+async function requireLeader(req: LeaderRequest, res: Response, next: NextFunction) {
   const me = await prisma.user.findUnique({ where: { id: req.userId } });
   if (!me || me.role !== "LEADER") return res.status(403).json({ error: "Community leaders only" });
+  if (!me.neighborhood) return res.status(403).json({ error: "A leader needs a neighborhood (set it with npm run make-leader)" });
+  req.hood = me.neighborhood;
   next();
 }
 
-// Prototype affordance: promote yourself to community leader to explore the tools.
-router.post("/claim", requireAuth, wrap(async (req: AuthedRequest, res) => {
-  const me = await prisma.user.update({ where: { id: req.userId }, data: { role: "LEADER" } });
-  res.json({ role: me.role.toLowerCase() });
-}));
+router.use(requireAuth, requireLeader);
 
-router.get("/overview", requireAuth, requireLeader, wrap(async (req: AuthedRequest, res) => {
-  const me = await prisma.user.findUnique({ where: { id: req.userId } });
-  const hood = me?.neighborhood ?? undefined;
-  const [members, listings, events, openReports, pot] = await Promise.all([
-    hood ? prisma.user.count({ where: { neighborhood: hood } }) : prisma.user.count(),
-    prisma.listing.count({ where: { active: true } }),
-    prisma.event.count(),
-    prisma.report.count({ where: { status: "OPEN" } }),
+router.get("/overview", wrap(async (req: LeaderRequest, res) => {
+  const hood = req.hood!;
+  const [members, unverified, listings, events, openReports, pot] = await Promise.all([
+    prisma.user.count({ where: { neighborhood: hood, deletedAt: null } }),
+    prisma.user.count({ where: { neighborhood: hood, deletedAt: null, verified: false } }),
+    prisma.listing.count({ where: { active: true, neighborhood: hood } }),
+    prisma.event.count({ where: { neighborhood: hood } }),
+    prisma.report.count({ where: { status: "OPEN", target: { neighborhood: hood } } }),
     prisma.communityPot.findUnique({ where: { id: "global" } }),
   ]);
-  res.json({ neighborhood: hood, members, listings, events, openReports, pot: pot?.balance ?? 0 });
+  res.json({ neighborhood: hood, members, unverified, listings, events, openReports, pot: pot?.balance ?? 0 });
 }));
 
-router.get("/reports", requireAuth, requireLeader, wrap(async (_req, res) => {
+// Reports about people in this leader's neighborhood only.
+router.get("/reports", wrap(async (req: LeaderRequest, res) => {
   const rows = await prisma.report.findMany({
-    where: { status: "OPEN" }, orderBy: { createdAt: "desc" }, take: 100,
+    where: { status: "OPEN", target: { neighborhood: req.hood } }, orderBy: { createdAt: "desc" }, take: 100,
     include: { reporter: { select: { name: true } }, target: { select: { name: true } } },
   });
   res.json({
@@ -43,10 +46,49 @@ router.get("/reports", requireAuth, requireLeader, wrap(async (_req, res) => {
   });
 }));
 
-router.post("/reports/:id/resolve", requireAuth, requireLeader, wrap(async (req, res) => {
+router.post("/reports/:id/resolve", wrap(async (req: LeaderRequest, res) => {
   const status = z.object({ status: z.enum(["REVIEWED", "ACTIONED"]) }).parse(req.body).status;
-  await prisma.report.update({ where: { id: req.params.id }, data: { status } });
+  const { count } = await prisma.report.updateMany({ where: { id: req.params.id, target: { neighborhood: req.hood } }, data: { status } });
+  if (!count) return res.status(404).json({ error: "Not found" });
   res.json({ ok: true });
+}));
+
+// Neighbors waiting to be verified, so a leader can confirm them in person (at a meetup, or
+// someone they know). Names only: no contact details or locations.
+router.get("/members/unverified", wrap(async (req: LeaderRequest, res) => {
+  const rows = await prisma.user.findMany({
+    where: { neighborhood: req.hood, verified: false, deletedAt: null }, orderBy: { createdAt: "asc" }, take: 200,
+    select: { id: true, name: true, createdAt: true },
+  });
+  res.json({ members: rows });
+}));
+
+const verifySchema = z.object({ method: z.enum(["in-person", "known-neighbor", "vouched"]) });
+
+router.post("/members/:id/verify", wrap(async (req: LeaderRequest, res) => {
+  const { method } = verifySchema.parse(req.body);
+  if (req.params.id === req.userId) return res.status(400).json({ error: "Another leader verifies you" });
+  const { count } = await prisma.user.updateMany({
+    where: { id: req.params.id, neighborhood: req.hood, deletedAt: null },
+    data: { verified: true, verifyMethod: method, verifiedById: req.userId, verifiedAt: new Date() },
+  });
+  if (!count) return res.status(404).json({ error: "Not found" });
+  res.json({ ok: true });
+}));
+
+// At a meetup: the neighbor tells the leader the email they signed up with, and the leader
+// verifies them, which also brings them into the leader's neighborhood. Someone already in
+// another neighborhood stays there (their own leader verifies them).
+router.post("/members/verify-by-email", wrap(async (req: LeaderRequest, res) => {
+  const { email, method } = verifySchema.extend({ email: z.string().email() }).parse(req.body);
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  if (!user || user.deletedAt || (user.neighborhood && user.neighborhood !== req.hood)) return res.status(404).json({ error: "No neighbor with that email here" });
+  if (user.id === req.userId) return res.status(400).json({ error: "Another leader verifies you" });
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { neighborhood: req.hood, verified: true, verifyMethod: method, verifiedById: req.userId, verifiedAt: new Date() },
+  });
+  res.json({ ok: true, name: user.name });
 }));
 
 export default router;

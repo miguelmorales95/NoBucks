@@ -4,7 +4,9 @@ import { env } from "../env";
 /**
  * Create an in-app notification and (if configured) fan it out to the user's
  * registered devices via Amazon SNS. The SNS publish is best-effort and never
- * blocks the request.
+ * blocks the request. Phones get only the title ("New message from Ana"): a
+ * notification shows on a locked screen, so message text and trade details stay
+ * inside the app.
  */
 export async function notifyUser(
   userId: string,
@@ -24,7 +26,7 @@ export async function notifyUser(
         sns.send(
           new PublishCommand({
             TargetArn: d.snsArn!,
-            Message: JSON.stringify({ default: `${n.title}: ${n.body}` }),
+            Message: JSON.stringify({ default: n.title }),
             MessageStructure: "json",
           })
         )

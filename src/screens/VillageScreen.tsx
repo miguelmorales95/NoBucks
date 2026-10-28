@@ -79,8 +79,11 @@ function VillageHome() {
       <button className="btn btn-ghost" style={{ marginTop: 10 }} onClick={actions.demurrageWeek}>⏳ Let a week pass (sprouts age &amp; expire)</button>
       {state.player.role === "leader" ? (
         <button className="btn btn-teal" style={{ marginTop: 10 }} onClick={actions.openAdmin}>🛡️ Community tools</button>
-      ) : (
+      ) : !state.apiMode ? (
         <button className="btn btn-ghost" style={{ marginTop: 10 }} onClick={actions.claimLeader}>Become a community leader (demo)</button>
+      ) : null}
+      {state.apiMode && (
+        <button className="btn btn-ghost" style={{ marginTop: 10 }} onClick={actions.openPrivacy}>🔒 Your account &amp; privacy</button>
       )}
 
       <div className="section-h">🌱 Sprout activity</div>

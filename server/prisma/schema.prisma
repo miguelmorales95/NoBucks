@@ -98,6 +98,15 @@ model User {
   lng          Float?
   neighborhood String?
   createdAt    DateTime @default(now())
+  // Raised to end every session (sign out everywhere, password change, deletion).
+  tokenVersion Int      @default(0)
+  // When they confirmed they're 18 or older (required to join).
+  adultAt      DateTime?
+  // Set when the account is deleted: personal details are wiped, trades keep "Former neighbor".
+  deletedAt    DateTime?
+  // Who verified them in person (a community leader), and when.
+  verifiedById String?
+  verifiedAt   DateTime?
 
   listings       Listing[]
   villagers      Villager[]     @relation("VillageOwner")
@@ -113,6 +122,19 @@ model User {
   blockedBy      Block[]        @relation("Blocked")
   reportsMade    Report[]       @relation("Reporter")
   reportsAbout   Report[]       @relation("ReportTarget")
+}
+
+// One-time codes for resetting a password, sent by email. Only a hash is stored.
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Listing {

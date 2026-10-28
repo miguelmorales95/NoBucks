@@ -1,4 +1,34 @@
+import { useState } from "react";
 import { useStore } from "../store";
+
+const METHODS = [
+  { id: "in-person", label: "Met them in person" },
+  { id: "known-neighbor", label: "I already know them" },
+  { id: "vouched", label: "Two members vouched" },
+] as const;
+
+/** At a meetup: the neighbor says the email they signed up with, and the leader confirms them. */
+function VerifyNeighbor() {
+  const { state, actions } = useStore();
+  const [email, setEmail] = useState("");
+  const [method, setMethod] = useState<(typeof METHODS)[number]["id"]>("in-person");
+  if (!state.apiMode) return null;
+  return (
+    <>
+      <div className="section-h">🤝 Verify a neighbor{state.adminOverview?.unverified ? ` (${state.adminOverview.unverified} waiting)` : ""}</div>
+      <div className="repcard">
+        <div className="repdetails" style={{ marginBottom: 8 }}>Ask for the email they signed up with. Verifying also adds them to your neighborhood.</div>
+        <div className="field"><label>Their email</label>
+          <input type="email" value={email} placeholder="neighbor@example.com" onChange={(e) => setEmail(e.target.value)} /></div>
+        <div className="seg" style={{ margin: "8px 0" }}>
+          {METHODS.map((m) => <button key={m.id} aria-pressed={method === m.id} onClick={() => setMethod(m.id)}>{m.label}</button>)}
+        </div>
+        <button className="btn btn-primary" disabled={!/\S+@\S+\.\S+/.test(email)}
+          onClick={async () => { if (await actions.verifyNeighbor(email.trim(), method)) setEmail(""); }}>Verify</button>
+      </div>
+    </>
+  );
+}
 
 export function AdminScreen() {
   const { state, actions } = useStore();
@@ -27,6 +57,8 @@ export function AdminScreen() {
         <div className="vm"><div className="num">{stats.pot} 🌱</div><div className="lab">Community pot</div></div>
         <div className="vm"><div className="num">{state.reports.length}</div><div className="lab">Open reports</div></div>
       </div>
+
+      <VerifyNeighbor />
 
       <div className="section-h">🚩 Reports to review</div>
       {state.reports.length ? (

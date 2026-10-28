@@ -127,6 +127,7 @@ export interface AdminReport {
 export interface AdminOverview {
   neighborhood?: string;
   members: number;
+  unverified?: number;
   listings: number;
   events: number;
   openReports: number;

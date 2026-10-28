@@ -37,18 +37,47 @@ function DemoAuth() {
 
 function EmailAuth() {
   const { actions } = useStore();
-  const [mode, setMode] = useState<"login" | "register">("register");
+  const [mode, setMode] = useState<"login" | "register" | "forgot" | "reset">("register");
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [adult, setAdult] = useState(false);
+  const [code, setCode] = useState("");
 
   const submit = () => {
     if (!email.trim() || password.length < 8 || (mode === "register" && !name.trim())) {
       actions.toast("Enter a name, email, and 8+ char password");
       return;
     }
-    actions.apiAuth({ mode, email: email.trim(), name: name.trim(), password });
+    if (mode === "register" && !adult) { actions.toast("NoBucks is for people 18 and older"); return; }
+    actions.apiAuth({ mode: mode === "register" ? "register" : "login", email: email.trim(), name: name.trim(), password });
   };
+
+  if (mode === "forgot" || mode === "reset") {
+    return (
+      <div className="gate auth" style={{ flex: 1 }}>
+        <div className="logo">🔑</div>
+        <h1 style={{ fontSize: 28 }}>Reset your password</h1>
+        <div className="auth-btns">
+          <div className="field"><label>Email</label>
+            <input type="email" value={email} placeholder="you@example.com" onChange={(e) => setEmail(e.target.value)} /></div>
+          {mode === "forgot" ? (
+            <button className="btn btn-primary" onClick={async () => { if (await actions.forgotPassword(email.trim())) setMode("reset"); }}>Email me a code</button>
+          ) : (
+            <>
+              <div className="field"><label>Code from the email</label>
+                <input inputMode="numeric" value={code} maxLength={6} placeholder="123456" onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} /></div>
+              <div className="field"><label>New password</label>
+                <input type="password" value={password} placeholder="At least 8 characters" onChange={(e) => setPassword(e.target.value)} /></div>
+              <button className="btn btn-primary" disabled={code.length !== 6 || password.length < 8}
+                onClick={() => actions.resetPassword(email.trim(), code, password)}>Change password</button>
+            </>
+          )}
+        </div>
+        <button className="guest" onClick={() => setMode("login")}>← Back to sign in</button>
+      </div>
+    );
+  }
 
   return (
     <div className="gate auth" style={{ flex: 1 }}>
@@ -68,6 +97,13 @@ function EmailAuth() {
           <input type="email" value={email} placeholder="you@example.com" onChange={(e) => setEmail(e.target.value)} /></div>
         <div className="field"><label>Password</label>
           <input type="password" value={password} placeholder="At least 8 characters" onChange={(e) => setPassword(e.target.value)} /></div>
+        {mode === "register" && (
+          <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 14, textAlign: "left" }}>
+            <input type="checkbox" checked={adult} onChange={(e) => setAdult(e.target.checked)} style={{ marginTop: 3 }} />
+            <span>I'm 18 or older. NoBucks is for adults, because neighbors meet in person to trade help.</span>
+          </label>
+        )}
+        {mode === "login" && <button className="linkbtn" onClick={() => setMode("forgot")}>Forgot your password?</button>}
         <button className="btn btn-primary" onClick={submit}>{mode === "register" ? "Create account 🌱" : "Sign in"}</button>
       </div>
       <button className="guest" onClick={() => actions.signIn(true)}>Just looking? Explore in demo mode →</button>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 /*
  * ⚠️ DRAFT — MUST BE REVIEWED BEFORE THE PILOT. ⚠️
  *
@@ -16,8 +17,40 @@
  */
 import { useStore } from "../store";
 
-const EFFECTIVE = "October 27, 2026";
+const EFFECTIVE = "October 29, 2026";
 const CONTACT = "hello@somedude.app";
+
+/** Your account: download your data, sign out (here or everywhere), or delete it. */
+function AccountPanel() {
+  const { state, actions } = useStore();
+  const [deleting, setDeleting] = useState(false);
+  const [password, setPassword] = useState("");
+  if (!state.apiMode || !state.meId) return null;
+  return (
+    <section className="policy" style={{ paddingBottom: 0 }}>
+      <h2 style={{ marginTop: 0 }}>Your account</h2>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <button className="btn btn-ghost" onClick={actions.downloadMyData}>Download my data</button>
+        <button className="btn btn-ghost" onClick={() => actions.signOut(false)}>Sign out</button>
+        <button className="btn btn-ghost" onClick={() => actions.signOut(true)}>Sign out on every device</button>
+        <button className="btn btn-ghost" style={{ color: "#b3261e" }} onClick={() => setDeleting(true)}>Delete my account</button>
+      </div>
+      {deleting && (
+        <div className="repcard" style={{ marginTop: 12 }}>
+          <div className="repdetails">This deletes your profile, listings, village, events and notifications for good. Messages in
+            other people’s trades stay, shown as “Former neighbor”. Finish or cancel any open trade first.</div>
+          <div className="field"><label>Type your password to confirm</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-primary" style={{ background: "#b3261e" }} disabled={!password}
+              onClick={async () => { if (await actions.deleteAccount(password)) setDeleting(false); }}>Delete for good</button>
+            <button className="btn btn-ghost" onClick={() => { setDeleting(false); setPassword(""); }}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
 
 export function PrivacyScreen() {
   const { actions } = useStore();
@@ -29,6 +62,7 @@ export function PrivacyScreen() {
         <div className="ti"><b>🌱 Privacy policy</b><span>How NoBucks handles your info</span></div>
       </div>
 
+      <AccountPanel />
       <article className="policy">
         <p className="lede">
           NoBucks is a neighborhood time bank: you help neighbors, they help you, and sprouts keep
@@ -52,10 +86,10 @@ export function PrivacyScreen() {
             scrambled, one-way hash, never as the password itself. We use these to sign you in.</li>
           <li><strong>Your villager and village:</strong> the character look you build, your village
             theme and outfits. This is just for fun, and it’s how neighbors recognize you.</li>
-          <li><strong>Verification:</strong> when you confirm you’re a real neighbor, we record that you
-            are verified and which kind of check you picked. Right now we don’t collect or store
-            ID photos, selfies, phone numbers or addresses for this step. If that ever changes, we’ll
-            update this page and tell you first.</li>
+          <li><strong>Verification:</strong> a community leader verifies you in person. We record that
+            you’re verified, how (met in person, already known, or vouched for), which leader did it and
+            when. We don’t collect ID photos, selfies, phone numbers or addresses for this. If that ever
+            changes, we’ll update this page and tell you first.</li>
           <li><strong>What you post:</strong> offers, requests and pacts (title, description, category,
             sprout amount, an optional “where” note, whether you can travel, and an optional photo),
             events you host (title, time, place, size, description), RSVPs, and thank-you notes you
@@ -94,8 +128,11 @@ export function PrivacyScreen() {
           <li>The “where” on a post or event is whatever you type, and other members can read it. Use a
             public spot or a general area (“the park,” “near the library”) rather than your home address
             until you’ve arranged things with someone you trust.</li>
-          <li>Photos from phones can carry hidden location data. NoBucks doesn’t remove it yet, so avoid
-            posting photos taken at home, or turn off location tagging in your camera.</li>
+          <li>Photos from phones can carry hidden location data. NoBucks redraws every photo on your
+            device before it’s uploaded, which removes that data (and the camera details). Photos are
+            stored privately and open through links that expire after an hour.</li>
+          <li>Distances on posts are rounded to the nearest half mile, worked out from a rough area
+            (about a kilometer across), so they can’t be used to find someone’s home.</li>
         </ul>
 
         <h2>Who can see what</h2>
@@ -191,10 +228,12 @@ export function PrivacyScreen() {
 
         <h2>Deleting your account and your data</h2>
         <p>
-          You can ask us to delete your account at any time. During the pilot, email{" "}
-          <a href={`mailto:${CONTACT}`}>{CONTACT}</a> from the address you signed up with and we’ll
-          take care of it, and confirm when it’s done. You can also ask us for a copy of your
-          information, or to fix something that’s wrong. Depending on where you live (for example,
+          You can delete your account at any time in the app (Your account &amp; privacy → Delete my
+          account), and download a copy of everything we hold about you there too. Deleting removes your
+          profile, posts, village, events and notifications; messages in other people’s trades stay, shown
+          as “Former neighbor”. If you can’t use the app, email{" "}
+          <a href={`mailto:${CONTACT}`}>{CONTACT}</a> from the address you signed up with, and we’ll do it
+          for you. You can also ask us to fix something that’s wrong. Depending on where you live (for example,
           California), you may have more privacy rights; just ask, and we’ll help.
         </p>
 
@@ -208,10 +247,8 @@ export function PrivacyScreen() {
 
         <h2>Kids</h2>
         <p>
-          NoBucks isn’t for children under 13, and we don’t knowingly collect information from them.
-          The host organization may set a higher minimum age for its pilot. If you’re under 18, talk
-          with a parent or guardian before arranging to meet anyone. If you think a child under 13 has
-          joined, email us and we’ll delete the account.
+          NoBucks is for adults: you must be 18 or older to join, because neighbors meet in person to
+          trade help. If you think someone under 18 has joined, email us and we’ll close the account.
         </p>
 
         <h2>Changes to this policy</h2>
